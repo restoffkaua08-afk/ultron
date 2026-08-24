@@ -450,6 +450,15 @@ class Registry:
         rows = await self._conn.execute_fetchall(sql, params)
         return [_row_to_entry(r) for r in rows]
 
+    async def list_versions(self, manifest_id: str | ManifestId) -> list[RegistryEntry]:
+        """Lista todas as versões publicadas de um ID para resolução no U2."""
+        assert self._conn is not None
+        rows = await self._conn.execute_fetchall(
+            "SELECT * FROM manifests WHERE id = ? ORDER BY published_at DESC",
+            (str(manifest_id),),
+        )
+        return [_row_to_entry(row) for row in rows]
+
     async def search(self, query: SearchQuery) -> list[RegistryEntry]:
         """Busca via FTS5 + filtros estruturados.
 

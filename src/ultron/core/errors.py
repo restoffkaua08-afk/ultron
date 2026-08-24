@@ -76,3 +76,17 @@ class PolicyViolationError(UltronError):
 
     code = "POLICY_VIOLATION"
     http_status = 403
+
+
+class DependencyResolutionError(UltronError):
+    """Uma dependência obrigatória não possui versão compatível publicada."""
+
+    code = "DEPENDENCY_RESOLUTION_FAILED"
+    http_status = 409
+
+
+class ArtifactNotFoundError(UltronError):
+    """Artefato solicitado não existe no package store local."""
+
+    code = "ARTIFACT_NOT_FOUND"
+    http_status = 404

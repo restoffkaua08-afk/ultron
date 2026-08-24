@@ -36,6 +36,7 @@ import asyncio
 
 from ultron import Registry
 
+
 # Abre o registry local (SQLite em ~/.ultron/registry.db)
 async def main() -> None:
     # Registry.open() é um context manager assíncrono.

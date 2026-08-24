@@ -14,7 +14,9 @@ from ultron.core.base import (
     RiskLevel,
 )
 from ultron.core.errors import (
+    ArtifactNotFoundError,
     DependencyCycleError,
+    DependencyResolutionError,
     IntegrityError,
     InvalidManifestError,
     PermissionDeniedError,
@@ -29,25 +31,30 @@ from ultron.core.manifests import (
     SkillManifest,
     WorkflowManifest,
 )
+from ultron.resolver import DependencyResolver, ResolutionPlan, ResolvedDependency
+from ultron.store import PackageStore
 
 __version__ = "0.1.0"
 __all__ = [
-    # Manifests
     "AgentManifest",
-    # Base
+    "ArtifactNotFoundError",
     "BaseManifest",
     "DependencyCycleError",
     "DependencyRef",
+    "DependencyResolutionError",
+    "DependencyResolver",
     "IntegrityError",
     "IntegrityInfo",
     "InvalidManifestError",
-    # IDs
     "ManifestId",
     "PackManifest",
+    "PackageStore",
     "Permission",
     "PermissionDeniedError",
     "Provenance",
     "PublisherId",
+    "ResolutionPlan",
+    "ResolvedDependency",
     "RiskLevel",
     "SchemaVersionError",
     "SkillManifest",
