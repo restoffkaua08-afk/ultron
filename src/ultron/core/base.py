@@ -86,9 +86,7 @@ class Provenance(BaseModel):
     @model_validator(mode="after")
     def _check_git_requires_repo(self) -> Provenance:
         if self.source in {"git", "oci"} and not self.repository:
-            raise ValueError(
-                f"Provenance com source={self.source!r} exige 'repository'."
-            )
+            raise ValueError(f"Provenance com source={self.source!r} exige 'repository'.")
         return self
 
 
@@ -153,8 +151,7 @@ class Permission(BaseModel):
     def model_post_init(self, __context: Any) -> None:
         if self.capability not in VALID_PERMISSIONS:
             raise ValueError(
-                f"Permissão desconhecida: {self.capability!r}. "
-                f"Válidas: {sorted(VALID_PERMISSIONS)}"
+                f"Permissão desconhecida: {self.capability!r}. Válidas: {sorted(VALID_PERMISSIONS)}"
             )
 
 
@@ -226,13 +223,8 @@ class BaseManifest(BaseModel):
     def model_post_init(self, __context: Any) -> None:
         # ID e publisher devem concordar.
         if self.id.publisher != self.publisher:
-            raise ValueError(
-                f"Manifest {self.id} tem publisher divergente: {self.publisher!r}"
-            )
+            raise ValueError(f"Manifest {self.id} tem publisher divergente: {self.publisher!r}")
         # Anti-gate: nenhum manifest pode solicitar aprovação total.
         for p in self.permissions:
             if p.capability in {"approve-all", "*"}:
-                raise ValueError(
-                    f"Permissão proibida: {p.capability!r} "
-                    "(anti-gate de policy)."
-                )
+                raise ValueError(f"Permissão proibida: {p.capability!r} (anti-gate de policy).")

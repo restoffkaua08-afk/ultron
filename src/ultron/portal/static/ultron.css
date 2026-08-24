@@ -583,6 +583,9 @@ code, pre, .mono {
 .action-publish { background: #1e2d3a; color: #9cc1ff; }
 .action-delete { background: #4f1e1e; color: #ff8080; }
 
+/* Elementos HTML com `hidden` nunca podem aparecer antes do JavaScript carregar. */
+[hidden] { display: none !important; }
+
 /* ---- Command palette ---- */
 .cmd-palette {
   position: fixed;

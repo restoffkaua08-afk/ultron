@@ -50,8 +50,7 @@ class AgentManifest(BaseManifest):
         # Anti-gate: entrypoint precisa ter formato mínimo
         if ":" not in self.entrypoint:
             raise ValueError(
-                f"Entrypoint inválido: {self.entrypoint!r}. "
-                "Esperado 'package.module:Symbol'."
+                f"Entrypoint inválido: {self.entrypoint!r}. Esperado 'package.module:Symbol'."
             )
 
 
@@ -83,9 +82,7 @@ class WorkflowStep(BaseModel):
 
     id: str
     uses: str = Field(
-        description=(
-            "Referência a uma capability (ex.: 'skill:search', 'agent:planner')."
-        )
+        description=("Referência a uma capability (ex.: 'skill:search', 'agent:planner').")
     )
     with_: dict[str, Any] = Field(
         default_factory=dict,
@@ -119,9 +116,7 @@ class WorkflowManifest(BaseManifest):
             raise ValueError(f"Workflow {self.id} tem step ids duplicados: {ids}")
         unknown = set(self.compensations) - set(ids)
         if unknown:
-            raise ValueError(
-                f"Compensações referenciam steps inexistentes: {sorted(unknown)}"
-            )
+            raise ValueError(f"Compensações referenciam steps inexistentes: {sorted(unknown)}")
 
 
 # ---- Pack ------------------------------------------------------------------
@@ -158,9 +153,7 @@ class PackManifest(BaseManifest):
         # Anti-gate: pack não pode ser publicado com conflicts apontando para si
         for c in self.conflicts:
             if c == str(self.id):
-                raise ValueError(
-                    f"Pack {self.id} conflita consigo mesmo (anti-gate)."
-                )
+                raise ValueError(f"Pack {self.id} conflita consigo mesmo (anti-gate).")
 
 
 # ---- Validação cruzada (independiente de registry) -----------------------

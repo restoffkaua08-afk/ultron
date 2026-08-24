@@ -56,32 +56,36 @@ def build_registry_router() -> APIRouter:
         if status:
             try:
                 parsed_status = RegistryStatus(status)
-            except ValueError:
-                parsed_status = None
-        entries = await reg.search(
-            SearchQuery(
-                text=q,
-                kind=kind,  # type: ignore[arg-type]
-                capability=capability,
-                runtime=runtime,
-                publisher=publisher,
-                license=license,
-                risk=risk,
-                status=parsed_status,
-                limit=limit,
-                offset=offset,
-            )
+            except ValueError as exc:
+                allowed = ", ".join(item.value for item in RegistryStatus)
+                raise HTTPException(
+                    status_code=422, detail=f"Status inválido. Valores aceitos: {allowed}"
+                ) from exc
+        query = SearchQuery(
+            text=q,
+            kind=kind,  # type: ignore[arg-type]
+            capability=capability,
+            runtime=runtime,
+            publisher=publisher,
+            license=license,
+            risk=risk,
+            status=parsed_status,
+            limit=limit,
+            offset=offset,
         )
+        entries = await reg.search(query)
         return {
-            "total": len(entries),
+            "total": await reg.count_search(query),
             "limit": limit,
             "offset": offset,
             "results": [_entry_to_json(e) for e in entries],
         }
 
-    @router.get("/manifests/{manifest_id}")
+    @router.get("/manifests/{manifest_id:path}")
     async def get_manifest(manifest_id: str, version: str | None = None) -> dict[str, Any]:
         reg = _state().registry
+        if version is None and "@" in manifest_id:
+            manifest_id, version = manifest_id.rsplit("@", 1)
         try:
             entry = await reg.get(manifest_id, version)
         except Exception as e:

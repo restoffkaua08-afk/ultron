@@ -9,7 +9,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from ultron.api import create_app
+from ultron.api import create_app, get_app_state
+from ultron.core.base import Provenance, RiskLevel
+from ultron.core.ids import ManifestId
+from ultron.core.manifests import AgentManifest
 
 
 @pytest.fixture
@@ -45,7 +48,7 @@ def test_index_renders(client: TestClient) -> None:
     assert r.status_code == 200
     body = r.text
     assert "ULTRON" in body
-    assert "data-theme=\"dark\"" in body
+    assert 'data-theme="dark"' in body
 
 
 def test_browse_renders(client: TestClient) -> None:
@@ -85,3 +88,47 @@ def test_list_endpoint_empty(client: TestClient) -> None:
 def test_get_missing_returns_404(client: TestClient) -> None:
     r = client.get("/api/v1/manifests/missing-pkg")
     assert r.status_code == 404
+
+
+def _publish_agent(client: TestClient, *, version: str = "1.0.0") -> AgentManifest:
+    manifest = AgentManifest(
+        id=ManifestId(publisher="acme", name="api-agent"),
+        version=version,
+        description="Agente publicado pelo teste da API",
+        publisher="acme",
+        license="MIT",
+        risks=RiskLevel.LOW,
+        runtime="python:3.12",
+        entrypoint="acme.api.agent:main",
+        capabilities=["search.web"],
+        provenance=Provenance(source="local"),
+    )
+    assert client.portal is not None
+    client.portal.call(get_app_state().registry.publish, manifest)
+    return manifest
+
+
+def test_get_manifest_accepts_id_with_slash_and_at_version(client: TestClient) -> None:
+    _publish_agent(client)
+
+    response = client.get("/api/v1/manifests/acme/api-agent@1.0.0")
+
+    assert response.status_code == 200
+    assert response.json()["manifest"]["version"] == "1.0.0"
+
+
+def test_search_total_is_not_limited_to_page_size(client: TestClient) -> None:
+    _publish_agent(client, version="1.0.0")
+    _publish_agent(client, version="2.0.0")
+
+    response = client.get("/api/v1/manifests/search?q=agente&limit=1")
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 2
+    assert len(response.json()["results"]) == 1
+
+
+def test_search_rejects_invalid_status(client: TestClient) -> None:
+    response = client.get("/api/v1/manifests/search?status=unknown")
+
+    assert response.status_code == 422

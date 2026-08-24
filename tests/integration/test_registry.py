@@ -150,9 +150,7 @@ async def test_get_not_found(registry: Registry) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_specific_version_not_found(
-    registry: Registry, agent_v1: AgentManifest
-) -> None:
+async def test_get_specific_version_not_found(registry: Registry, agent_v1: AgentManifest) -> None:
     await registry.publish(agent_v1)
     with pytest.raises(UltronError):
         await registry.get(str(agent_v1.id), "9.9.9")
@@ -210,17 +208,13 @@ async def test_search_filters_combine(registry: Registry, agent_v1, agent_b) -> 
     await registry.publish(agent_v1)
     await registry.publish(agent_b)
     # Filtro kind + publisher: ambos agent, mas só acme
-    results = await registry.search(
-        SearchQuery(kind="agent", publisher="acme")
-    )
+    results = await registry.search(SearchQuery(kind="agent", publisher="acme"))
     assert len(results) == 1
     assert results[0].manifest.id == agent_v1.id
 
 
 @pytest.mark.asyncio
-async def test_search_diacritics_insensitive(
-    registry: Registry, agent_v1: AgentManifest
-) -> None:
+async def test_search_diacritics_insensitive(registry: Registry, agent_v1: AgentManifest) -> None:
     """Tokenizer unicode61 remove_diacritics — `Agênte` deve achar `agente`."""
     await registry.publish(agent_v1)
     # Publicar v2 com descrição acentuada
@@ -244,22 +238,65 @@ async def test_search_diacritics_insensitive(
 
 
 @pytest.mark.asyncio
-async def test_search_empty_returns_all(
-    registry: Registry, agent_v1, agent_b
-) -> None:
+async def test_search_empty_returns_all(registry: Registry, agent_v1, agent_b) -> None:
     await registry.publish(agent_v1)
     await registry.publish(agent_b)
     results = await registry.search(SearchQuery(text=""))
     assert len(results) == 2
 
 
+@pytest.mark.asyncio
+async def test_search_preserves_exact_matching_version(
+    registry: Registry, agent_v1: AgentManifest, agent_v2: AgentManifest
+) -> None:
+    """O FTS não pode expandir um match para todas as versões do mesmo ID."""
+    await registry.publish(agent_v1)
+    unique_v2 = agent_v2.model_copy(
+        update={"description": "Versão exclusiva com termo ultravioleta"}
+    )
+    await registry.publish(unique_v2)
+
+    results = await registry.search(SearchQuery(text="ultravioleta"))
+
+    assert [entry.manifest.version for entry in results] == ["2.0.0"]
+
+
+@pytest.mark.asyncio
+async def test_search_filters_runtime_and_status(
+    registry: Registry, agent_v1: AgentManifest, agent_v2: AgentManifest
+) -> None:
+    await registry.publish(agent_v1)
+    await registry.publish(agent_v2)
+    updated = await registry.set_status(
+        str(agent_v2.id), "2.0.0", RegistryStatus.DEPRECATED, actor="tester"
+    )
+    assert updated.status == RegistryStatus.DEPRECATED
+
+    runtime_results = await registry.search(SearchQuery(runtime="python:3.13"))
+    status_results = await registry.search(SearchQuery(status=RegistryStatus.DEPRECATED))
+
+    assert [entry.manifest.version for entry in runtime_results] == ["2.0.0"]
+    assert [entry.manifest.version for entry in status_results] == ["2.0.0"]
+    assert (await registry.recent_audit(limit=1))[0]["action"] == "status_changed"
+
+
+@pytest.mark.asyncio
+async def test_count_search_ignores_pagination(
+    registry: Registry, agent_v1: AgentManifest, agent_b: AgentManifest
+) -> None:
+    await registry.publish(agent_v1)
+    await registry.publish(agent_b)
+    query = SearchQuery(text="agente", limit=1)
+
+    assert len(await registry.search(query)) == 1
+    assert await registry.count_search(query) == 2
+
+
 # ---- Delete + Audit -------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_delete_removes_and_audits(
-    registry: Registry, agent_v1: AgentManifest
-) -> None:
+async def test_delete_removes_and_audits(registry: Registry, agent_v1: AgentManifest) -> None:
     await registry.publish(agent_v1, actor="tester")
     assert await registry.count() == 1
 
@@ -282,9 +319,7 @@ async def test_delete_missing_raises(registry: Registry) -> None:
 
 
 @pytest.mark.asyncio
-async def test_published_payload_is_immutable(
-    registry: Registry, agent_v1: AgentManifest
-) -> None:
+async def test_published_payload_is_immutable(registry: Registry, agent_v1: AgentManifest) -> None:
     """Uma vez publicado, o payload não muda (apenas nova versão)."""
     await registry.publish(agent_v1)
     # Tentativa de re-publicar mesma (id, version) deve falhar
@@ -293,9 +328,10 @@ async def test_published_payload_is_immutable(
 
     # Payload persistido continua o mesmo
     entry = await registry.get(str(agent_v1.id), str(agent_v1.version))
-    assert entry.payload_hash == __import__("hashlib").sha256(
-        agent_v1.model_dump_json().encode()
-    ).hexdigest()
+    assert (
+        entry.payload_hash
+        == __import__("hashlib").sha256(agent_v1.model_dump_json().encode()).hexdigest()
+    )
 
 
 # ---- Stats ---------------------------------------------------------------
@@ -310,7 +346,7 @@ async def test_stats_aggregate(registry: Registry, agent_v1, agent_b) -> None:
     assert stats.by_kind.get("agent") == 2
     assert stats.by_publisher.get("acme") == 1
     assert stats.by_publisher.get("other") == 1
-    assert stats.latest_migration >= 1
+    assert stats.latest_migration >= 2
 
 
 @pytest.mark.asyncio
@@ -318,7 +354,7 @@ async def test_stats_empty(registry: Registry) -> None:
     stats = await registry.stats()
     assert stats.total == 0
     assert stats.by_kind == {}
-    assert stats.latest_migration >= 1  # migration inicial
+    assert stats.latest_migration >= 2
 
 
 # ---- Count ---------------------------------------------------------------
@@ -338,9 +374,7 @@ async def test_count_with_filter(registry: Registry, agent_v1, agent_b) -> None:
 
 
 @pytest.mark.asyncio
-async def test_audit_records_publish(
-    registry: Registry, agent_v1: AgentManifest
-) -> None:
+async def test_audit_records_publish(registry: Registry, agent_v1: AgentManifest) -> None:
     await registry.publish(agent_v1, actor="alice", correlation_id="corr-1")
     audit = await registry.recent_audit()
     publish_event = next((e for e in audit if e["action"] == "publish"), None)
@@ -351,9 +385,7 @@ async def test_audit_records_publish(
 
 
 @pytest.mark.asyncio
-async def test_audit_event_timestamp_is_utc(
-    registry: Registry, agent_v1: AgentManifest
-) -> None:
+async def test_audit_event_timestamp_is_utc(registry: Registry, agent_v1: AgentManifest) -> None:
     await registry.publish(agent_v1)
     audit = await registry.recent_audit(limit=1)
     ts = audit[0]["occurred_at"]

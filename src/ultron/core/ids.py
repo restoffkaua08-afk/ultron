@@ -40,9 +40,7 @@ def _validate_publisher(v: str) -> str:
 
 def _validate_name(v: str) -> str:
     if not re.match(_NAME_RE, v):
-        raise ValueError(
-            f"Nome de manifesto inválido: {v!r}. Deve casar {_NAME_RE!r}."
-        )
+        raise ValueError(f"Nome de manifesto inválido: {v!r}. Deve casar {_NAME_RE!r}.")
     return v
 
 

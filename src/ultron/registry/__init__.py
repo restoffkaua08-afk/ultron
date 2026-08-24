@@ -292,6 +292,28 @@ class Registry:
             )
             await self._conn.commit()
 
+        # Migration 2: estado persistido do manifesto. A checagem por PRAGMA
+        # mantém a migração idempotente tanto em bancos U1 existentes quanto
+        # em instalações novas.
+        columns = await self._conn.execute_fetchall("PRAGMA table_info(manifests)")
+        if "status" not in {str(column[1]) for column in columns}:
+            await self._conn.execute(
+                "ALTER TABLE manifests ADD COLUMN status TEXT NOT NULL DEFAULT 'published'"
+            )
+        migration_2 = await self._conn.execute_fetchall(
+            "SELECT version FROM migrations WHERE version = 2"
+        )
+        if not migration_2:
+            await self._conn.execute(
+                "INSERT INTO migrations (version, applied_at, description) VALUES (?, ?, ?)",
+                (
+                    2,
+                    datetime.now(tz=UTC).isoformat(),
+                    "Estado persistido de manifests (published/deprecated/revoked)",
+                ),
+            )
+        await self._conn.commit()
+
     async def close(self) -> None:
         if self._conn is not None:
             await self._conn.close()
@@ -376,7 +398,7 @@ class Registry:
     ) -> RegistryEntry:
         """Busca um manifest por id (+ versão opcional).
 
-        Sem versão, devolve a maior versão semver publicada.
+        Sem versão, devolve a versão publicada mais recentemente.
         """
         assert self._conn is not None
         mid = str(manifest_id)
@@ -386,8 +408,7 @@ class Registry:
                 (mid, version),
             )
         else:
-            # Pega a maior versão. Em U0 não temos semver sort ainda,
-            # então retorna a mais recente por published_at.
+            # Ordenação SemVer completa pertence ao resolver do U2.
             rows = await self._conn.execute_fetchall(
                 """
                 SELECT * FROM manifests
@@ -440,78 +461,99 @@ class Registry:
         3. Combinação: juntar e deduplicar.
         """
         assert self._conn is not None
+        sql, params = await self._build_search_sql(query)
+        rows = await self._conn.execute_fetchall(sql, params)
+        return [_row_to_entry(r) for r in rows]
 
-        # ---- path 1: filtros estruturados via SQL ----------------------------
-        struct_where: list[str] = []
-        struct_params: list[Any] = []
-        for col, val in (
+    async def count_search(self, query: SearchQuery) -> int:
+        """Conta todos os resultados de uma busca, sem aplicar paginação."""
+        assert self._conn is not None
+        sql, params = await self._build_search_sql(query, count_only=True)
+        rows = list(await self._conn.execute_fetchall(sql, params))
+        return int(rows[0][0])
+
+    async def _build_search_sql(
+        self, query: SearchQuery, *, count_only: bool = False
+    ) -> tuple[str, list[Any]]:
+        """Monta a consulta compartilhada por ``search`` e ``count_search``."""
+        where: list[str] = []
+        params: list[Any] = []
+        for column, value in (
             ("kind", query.kind),
             ("publisher", query.publisher),
             ("license", query.license),
             ("risk", query.risk),
+            ("status", query.status.value if query.status else None),
         ):
-            if val:
-                # Colunas whitelisted, não é input do usuário
-                struct_where.append(f"{col} = ?")
-                struct_params.append(val)
+            if value:
+                where.append(f"{column} = ?")
+                params.append(value)
+        if query.runtime:
+            where.append("json_extract(payload_json, '$.runtime') = ?")
+            params.append(query.runtime)
 
-        # ---- path 2: textual via FTS5 -----------------------------------------
-        fts_pairs: list[tuple[str, str]] = []  # (id, version)
-        if query.text:
-            try:
-                ids = await self._fts_query(_build_fts_query(query.text))
-            except Exception:
-                ids = []
-            fts_pairs = ids
-        elif query.capability:
+        fts_pairs: list[tuple[str, str]] | None = None
+        if query.text or query.capability:
             try:
                 fts_pairs = await self._fts_query(
-                    _build_fts_query(query.capability),
-                    column="capabilities",
+                    _build_fts_query(query.text or query.capability or ""),
+                    column="" if query.text else "capabilities",
                 )
-            except Exception:
+            except aiosqlite.Error:
                 fts_pairs = []
+            if not fts_pairs:
+                return (
+                    ("SELECT COUNT(*) FROM manifests WHERE 0", [])
+                    if count_only
+                    else (
+                        "SELECT * FROM manifests WHERE 0",
+                        [],
+                    )
+                )
+            pair_clauses: list[str] = []
+            for manifest_id, version in fts_pairs:
+                pair_clauses.append("(id = ? AND version = ?)")
+                params.extend([manifest_id, version])
+            where.append(f"({' OR '.join(pair_clauses)})")
 
-        # ---- combinar ---------------------------------------------------------
-        if fts_pairs and struct_where:
-            ids_only: set[str] = {p[0] for p in fts_pairs}
-            if not ids_only:
-                return []
-            placeholders = ",".join("?" for _ in ids_only)
-            # placeholders são '?' literais, struct_where é whitelist interno
-            sql = (
-                f"SELECT * FROM manifests WHERE id IN ({placeholders}) "
-                f"AND {' AND '.join(struct_where)} "
-                f"ORDER BY published_at DESC LIMIT ? OFFSET ?"
-            )
-            params2: list[Any] = [*ids_only, *struct_params, query.limit, query.offset]
-        elif fts_pairs:
-            ids_only = {p[0] for p in fts_pairs}
-            if not ids_only:
-                return []
-            placeholders = ",".join("?" for _ in ids_only)
-            sql = (
-                f"SELECT * FROM manifests WHERE id IN ({placeholders}) "
-                f"ORDER BY published_at DESC LIMIT ? OFFSET ?"
-            )
-            params2 = [*ids_only, query.limit, query.offset]
-        elif struct_where:
-            # struct_where = lista de whitelisted colunas
-            sql = (
-                f"SELECT * FROM manifests WHERE {' AND '.join(struct_where)} "
-                f"ORDER BY published_at DESC LIMIT ? OFFSET ?"
-            )
-            params2 = [*struct_params, query.limit, query.offset]
-        else:
-            sql = "SELECT * FROM manifests ORDER BY published_at DESC LIMIT ? OFFSET ?"
-            params2 = [query.limit, query.offset]
+        where_sql = f" WHERE {' AND '.join(where)}" if where else ""
+        if count_only:
+            return f"SELECT COUNT(*) FROM manifests{where_sql}", params
+        params.extend([query.limit, query.offset])
+        return (
+            f"SELECT * FROM manifests{where_sql} ORDER BY published_at DESC LIMIT ? OFFSET ?",
+            params,
+        )
 
-        rows = await self._conn.execute_fetchall(sql, params2)
-        return [_row_to_entry(r) for r in rows]
+    async def set_status(
+        self,
+        manifest_id: str | ManifestId,
+        version: str,
+        status: RegistryStatus,
+        *,
+        actor: str = "system",
+        correlation_id: str | None = None,
+    ) -> RegistryEntry:
+        """Altera somente o estado operacional, preservando o payload imutável."""
+        assert self._conn is not None
+        mid = str(manifest_id)
+        current = await self.get(mid, version)
+        await self._conn.execute(
+            "UPDATE manifests SET status = ? WHERE id = ? AND version = ?",
+            (status.value, mid, version),
+        )
+        await self._audit(
+            actor=actor,
+            action="status_changed",
+            target_id=mid,
+            target_version=version,
+            payload_hash=current.payload_hash,
+            correlation_id=correlation_id,
+        )
+        await self._conn.commit()
+        return await self.get(mid, version)
 
-    async def _fts_query(
-        self, fts_expr: str, column: str = ""
-    ) -> list[tuple[str, str]]:
+    async def _fts_query(self, fts_expr: str, column: str = "") -> list[tuple[str, str]]:
         """Roda MATCH na FTS5 e retorna lista de (id, version)."""
         assert self._conn is not None
         target = f"f.{column}" if column else "manifests_fts"
@@ -597,27 +639,21 @@ class Registry:
     async def stats(self) -> RegistryStats:
         """Estatísticas agregadas para o portal."""
         assert self._conn is not None
-        total_rows = list(
-            await self._conn.execute_fetchall("SELECT COUNT(*) FROM manifests")
-        )
+        total_rows = list(await self._conn.execute_fetchall("SELECT COUNT(*) FROM manifests"))
         total: int = int(total_rows[0][0])
 
         by_kind = await _by_kind(self._conn)
         by_publisher = await _by_publisher(self._conn)
         by_risk = await _by_risk(self._conn)
 
-        mig = list(
-            await self._conn.execute_fetchall("SELECT MAX(version) FROM migrations")
-        )
+        mig = list(await self._conn.execute_fetchall("SELECT MAX(version) FROM migrations"))
         latest_migration = int(mig[0][0] or 0)
 
         last_audit_rows = list(
             await self._conn.execute_fetchall("SELECT MAX(occurred_at) FROM audit")
         )
         last_audit_dt = (
-            datetime.fromisoformat(last_audit_rows[0][0])
-            if last_audit_rows[0][0]
-            else None
+            datetime.fromisoformat(last_audit_rows[0][0]) if last_audit_rows[0][0] else None
         )
 
         return RegistryStats(
@@ -696,9 +732,7 @@ _WS_SPLIT_RE = re.compile(r"[^\w\s\-_]")
 
 
 async def _by_kind(conn: aiosqlite.Connection) -> dict[str, int]:
-    rows = await conn.execute_fetchall(
-        "SELECT kind, COUNT(*) AS n FROM manifests GROUP BY kind"
-    )
+    rows = await conn.execute_fetchall("SELECT kind, COUNT(*) AS n FROM manifests GROUP BY kind")
     return {str(r[0]): int(r[1]) for r in rows}
 
 
@@ -710,9 +744,7 @@ async def _by_publisher(conn: aiosqlite.Connection) -> dict[str, int]:
 
 
 async def _by_risk(conn: aiosqlite.Connection) -> dict[str, int]:
-    rows = await conn.execute_fetchall(
-        "SELECT risk, COUNT(*) AS n FROM manifests GROUP BY risk"
-    )
+    rows = await conn.execute_fetchall("SELECT risk, COUNT(*) AS n FROM manifests GROUP BY risk")
     return {str(r[0]): int(r[1]) for r in rows}
 
 

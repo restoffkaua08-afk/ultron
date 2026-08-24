@@ -5,7 +5,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Status: Gate U0](https://img.shields.io/badge/Status-Gate%20U0-orange)]()
+[![Status: Gate U1](https://img.shields.io/badge/Status-Gate%20U1-brightgreen)]()
 
 ---
 
@@ -20,55 +20,45 @@ ULTRON é uma **plataforma de capacidades** (não um agente). Ela organiza, vali
 
 ULTRON **não é** o cérebro do Zane, do Jarvis ou de qualquer agente. É um **catálogo e protocolo** de extensão. Se o ULTRON cair, os agentes continuam operando com suas capacidades nativas.
 
-## Instalação
+## Instalação para desenvolvimento
 
 ```bash
-# Requer Python 3.12+
-pip install ultron
+# Requer Python 3.12+ e uv
+git clone https://github.com/restoffkaua08-afk/ultron.git
+cd ultron
+uv sync --extra dev
 ```
 
 ## Início rápido (5 minutos)
 
 ```python
-from ultron import Registry, AgentManifest
+import asyncio
+
+from ultron import Registry
 
 # Abre o registry local (SQLite em ~/.ultron/registry.db)
-registry = Registry.open()
+async def main() -> None:
+    # Registry.open() é um context manager assíncrono.
+    async with Registry.open() as registry:
+        # Consulte a referência dos manifests antes de publicar dados reais.
+        print(await registry.stats())
 
-# Publica um agent versionado
-agent = AgentManifest(
-    id="acme.research-agent",
-    version="1.0.0",
-    publisher="acme",
-    description="Agent de pesquisa acadêmica com busca e síntese.",
-    runtime="python",
-    entrypoint="acme_research.agent:ResearchAgent",
-    capabilities=["web_search", "summarize"],
-    permissions=["network.readonly"],
-)
-registry.publish(agent)
 
-# Descobre por filtro
-results = registry.search(type="agent", capability="web_search")
-for manifest in results:
-    print(manifest.id, manifest.version)
+asyncio.run(main())
 ```
 
 ## Documentação
 
-A documentação segue o framework **Diátaxis** — quatro tipos de doc separados:
-
-- **Tutorials** — [`docs/tutorials/`](docs/tutorials/) (em construção)
-- **How-to** — [`docs/how-to/`](docs/how-to/) (em construção)
-- **Reference** — [`docs/reference/`](docs/reference/) (em construção)
-- **Explanation** — [`docs/explanation/`](docs/explanation/) (em construção)
+A documentação mestra está no repositório
+[`Documenta-oMeta/docs/ultron`](https://github.com/restoffkaua08-afk/Documenta-oMeta/tree/main/docs/ultron).
+Este repositório mantém somente evidências técnicas locais em [`docs/gates/`](docs/gates/).
 
 ## Estado
 
 | Gate | Descrição | Estado |
 |---|---|---|
-| **U0** | Escopo e contratos | 🟡 Em curso (este release) |
-| U1 | Registry Ready | ⏳ Planejado |
+| U0 | Escopo e contratos | ✅ Aprovado |
+| **U1** | Registry Ready | ✅ Aprovado e estabilizado |
 | U2 | Installation Ready | ⏳ Planejado |
 | U3 | Security Ready | ⏳ Planejado |
 | U4 | Graph Ready | ⏳ Planejado |
@@ -98,7 +88,7 @@ Install/Activation  →  install ≠ activate; checkpoint para rollback
 Graph/Portal        →  dependências, capabilities, health
 ```
 
-Detalhes: [`docs/explanation/architecture.md`](docs/explanation/architecture.md).
+Detalhes: [arquitetura mestra](https://github.com/restoffkaua08-afk/Documenta-oMeta/tree/main/docs/ultron/arquitetura).
 
 ## Desenvolvimento
 
