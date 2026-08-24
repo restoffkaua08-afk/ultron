@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{{ manifest.id }} v{{ manifest.version }} — ULTRON{% endblock %}
+{% block content %}
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <h3>Navegação</h3>
+    <ul class="nav-list">
+      <li><a href="#info">Info</a></li>
+      <li><a href="#dependencies">Dependências</a></li>
+      <li><a href="#backlinks">Backlinks</a></li>
+      <li><a href="#permissions">Permissões</a></li>
+      <li><a href="#payload">Payload</a></li>
+    </ul>
+  </div>
+  <div class="sidebar-section">
+    <h3>Ações</h3>
+    <ul class="nav-list">
+      <li><a href="/browse?kind={{ manifest.kind }}">Todos os {{ manifest.kind }}s</a></li>
+      <li><a href="/browse?publisher={{ manifest.publisher }}">Outros de {{ manifest.publisher }}</a></li>
+    </ul>
+  </div>
+</aside>
+
+<section class="content">
+  <header class="manifest-header">
+    <span class="kind-badge kind-{{ manifest.kind }}">{{ manifest.kind }}</span>
+    <h1 class="manifest-title">{{ manifest.id }}</h1>
+    <span class="manifest-version-big">v{{ manifest.version }}</span>
+  </header>
+
+  <p class="manifest-description">{{ manifest.description }}</p>
+
+  <div class="manifest-meta">
+    <span><strong>Publisher:</strong> {{ manifest.publisher }}</span>
+    <span><strong>License:</strong> {{ manifest.license }}</span>
+    <span><strong>Risk:</strong> <span class="risk risk-{{ manifest.risks.value }}">{{ manifest.risks.value }}</span></span>
+    <span><strong>Schema:</strong> v{{ manifest.schema_version }}</span>
+    {% if manifest.homepage %}<span><strong>Homepage:</strong> <a href="{{ manifest.homepage }}">{{ manifest.homepage }}</a></span>{% endif %}
+  </div>
+
+  <section id="info" class="card">
+    <h2>Info</h2>
+    {% if manifest.capabilities %}
+    <div class="info-row">
+      <strong>Capabilities:</strong>
+      {% for c in manifest.capabilities %}<code class="cap">{{ c }}</code>{% endfor %}
+    </div>
+    {% endif %}
+    {% if manifest.tags %}
+    <div class="info-row">
+      <strong>Tags:</strong>
+      {% for t in manifest.tags %}<span class="tag">#{{ t }}</span>{% endfor %}
+    </div>
+    {% endif %}
+    {% if manifest.kind == 'agent' %}
+      <div class="info-row"><strong>Runtime:</strong> <code>{{ manifest.runtime }}</code></div>
+      <div class="info-row"><strong>Entrypoint:</strong> <code>{{ manifest.entrypoint }}</code></div>
+    {% endif %}
+  </section>
+
+  <section id="dependencies" class="card">
+    <h2>Dependências</h2>
+    {% if deps_resolved %}
+    <ul class="dep-list">
+      {% for d in deps_resolved %}
+      <li class="dep-item {% if not d.resolved %}unresolved{% endif %}">
+        <span class="kind-badge kind-{{ d.kind }}">{{ d.kind }}</span>
+        {% if d.resolved %}
+        <a href="/manifest/{{ d.id }}">{{ d.id }}</a> v{{ d.version }}
+        {% else %}
+        <span class="unresolved">{{ d.id }}</span>
+        {% endif %}
+        <code class="version-range">{{ d.range }}</code>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Nenhuma dependência.</p>
+    {% endif %}
+  </section>
+
+  <section id="backlinks" class="card">
+    <h2>Backlinks</h2>
+    {% if backlinks %}
+    <p class="muted">{{ backlinks|length }} manifest{{ '' if backlinks|length == 1 else 's' }} dependem deste.</p>
+    <ul class="dep-list">
+      {% for b in backlinks %}
+      <li class="dep-item">
+        <span class="kind-badge kind-{{ b.kind }}">{{ b.kind }}</span>
+        <a href="/manifest/{{ b.id }}">{{ b.id }}</a> v{{ b.version }}
+        <code class="version-range">{{ b.range }}</code>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Nenhum backlink.</p>
+    {% endif %}
+  </section>
+
+  <section id="permissions" class="card">
+    <h2>Permissões solicitadas</h2>
+    {% if manifest.permissions %}
+    <ul class="perm-list">
+      {% for p in manifest.permissions %}
+      <li><code>{{ p.capability }}</code>{% if p.scope %} <span class="muted">scope: {{ p.scope }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Nenhuma permissão solicitada.</p>
+    {% endif %}
+  </section>
+
+  <section id="payload" class="card">
+    <h2>Payload (JSON)</h2>
+    <pre class="code-block"><code>{{ manifest_json }}</code></pre>
+  </section>
+</section>
+{% endblock %}

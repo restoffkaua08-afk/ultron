@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Browse — ULTRON{% endblock %}
+{% block content %}
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <h3>Filtrar por tipo</h3>
+    <ul class="filter-list">
+      <li><a href="/browse?q={{ q }}" class="{% if not kind %}active{% endif %}">Todos</a></li>
+      <li><a href="/browse?q={{ q }}&kind=agent" class="{% if kind == 'agent' %}active{% endif %}">Agents</a></li>
+      <li><a href="/browse?q={{ q }}&kind=skill" class="{% if kind == 'skill' %}active{% endif %}">Skills</a></li>
+      <li><a href="/browse?q={{ q }}&kind=workflow" class="{% if kind == 'workflow' %}active{% endif %}">Workflows</a></li>
+      <li><a href="/browse?q={{ q }}&kind=pack" class="{% if kind == 'pack' %}active{% endif %}">Packs</a></li>
+    </ul>
+  </div>
+  {% if results %}
+  <div class="sidebar-section">
+    <h3>Resultados</h3>
+    <p class="muted">{{ results|length }} manifest{{ '' if results|length == 1 else 's' }}</p>
+  </div>
+  {% endif %}
+</aside>
+
+<section class="content">
+  <form class="search-form" method="get" action="/browse">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nome, descrição, capability…"
+           class="search-input" autofocus>
+    {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
+    {% if capability %}<input type="hidden" name="capability" value="{{ capability }}">{% endif %}
+    <button type="submit" class="search-button">Buscar</button>
+  </form>
+
+  {% if results %}
+  <ul class="manifest-list">
+    {% for entry in results %}
+    <li>
+      <a href="/manifest/{{ entry.manifest.id }}@{{ entry.manifest.version }}" class="manifest-row">
+        <span class="kind-badge kind-{{ entry.manifest.kind }}">{{ entry.manifest.kind }}</span>
+        <span class="manifest-id">{{ entry.manifest.id }}</span>
+        <span class="manifest-version">v{{ entry.manifest.version }}</span>
+        <span class="manifest-desc">{{ entry.manifest.description }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% elif q or kind or capability %}
+  <p class="empty">Nenhum manifest encontrado com esses filtros.</p>
+  {% else %}
+  <p class="empty">Use a busca acima ou os filtros à esquerda.</p>
+  {% endif %}
+</section>
+{% endblock %}

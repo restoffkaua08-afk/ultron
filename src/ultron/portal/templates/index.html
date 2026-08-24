@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}ULTRON — Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>ULTRON</h1>
+  <p class="hero-subtitle">
+    Plataforma independente de capabilities versionadas.
+    <span class="muted">Local-first. Auditável. Fail-safe.</span>
+  </p>
+</section>
+
+<section class="stats">
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.total }}</div>
+    <div class="stat-label">manifests publicados</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.by_kind|length }}</div>
+    <div class="stat-label">tipos</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.by_publisher|length }}</div>
+    <div class="stat-label">publishers</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">v{{ stats.latest_migration }}</div>
+    <div class="stat-label">última migration</div>
+  </div>
+</section>
+
+<section class="kinds">
+  <h2>Por tipo</h2>
+  <div class="kind-grid">
+    {% for kind, count in stats.by_kind.items() %}
+    <a href="/browse?kind={{ kind }}" class="kind-card kind-{{ kind }}">
+      <div class="kind-name">{{ kind }}</div>
+      <div class="kind-count">{{ count }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="recent">
+  <h2>Publicados recentemente</h2>
+  {% if recent %}
+  <ul class="manifest-list">
+    {% for entry in recent %}
+    <li>
+      <a href="/manifest/{{ entry.manifest.id }}@{{ entry.manifest.version }}" class="manifest-row">
+        <span class="kind-badge kind-{{ entry.manifest.kind }}">{{ entry.manifest.kind }}</span>
+        <span class="manifest-id">{{ entry.manifest.id }}</span>
+        <span class="manifest-version">v{{ entry.manifest.version }}</span>
+        <span class="manifest-desc">{{ entry.manifest.description }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">Nenhum manifest publicado ainda. <a href="/browse">Browse</a> para ver o registry.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Audit — ULTRON{% endblock %}
+{% block content %}
+<section class="content-full">
+  <h1>Audit log</h1>
+  <p class="muted">Últimos {{ events|length }} eventos. Append-only.</p>
+  {% if events %}
+  <table class="audit-table">
+    <thead>
+      <tr>
+        <th>When</th>
+        <th>Actor</th>
+        <th>Action</th>
+        <th>Target</th>
+        <th>Hash</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in events %}
+      <tr>
+        <td><code class="ts">{{ e.occurred_at }}</code></td>
+        <td>{{ e.actor }}</td>
+        <td><span class="action action-{{ e.action }}">{{ e.action }}</span></td>
+        <td>
+          {% if e.target_id %}
+            <a href="/manifest/{{ e.target_id }}{% if e.target_version %}@{{ e.target_version }}{% endif %}">
+              {{ e.target_id }}{% if e.target_version %}@{{ e.target_version }}{% endif %}
+            </a>
+          {% else %}—{% endif %}
+        </td>
+        <td><code class="hash">{{ (e.payload_hash or '')[:12] }}…</code></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">Nenhum evento de auditoria ainda.</p>
+  {% endif %}
+</section>
+{% endblock %}

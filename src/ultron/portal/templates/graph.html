@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Graph — ULTRON{% endblock %}
+{% block head %}
+<style>
+  #graph-container { width: 100%; height: calc(100vh - 60px); }
+  .graph-info {
+    position: fixed; top: 70px; right: 16px;
+    background: var(--bg-secondary); padding: 8px 12px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px; color: var(--fg-muted);
+  }
+</style>
+{% endblock %}
+{% block content %}
+<section class="content-full">
+  <div class="graph-info">
+    <strong>{{ node_count }}</strong> nodes · <strong>{{ edge_count }}</strong> edges
+  </div>
+  <div id="graph-container" data-graph-data="{{ graph_data }}"></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/cytoscape@3.30.4/dist/cytoscape.min.js" defer
+        onerror="document.getElementById('graph-container').innerHTML = '<p class=empty>Falha ao carregar Cytoscape. Verifique a conexão.</p>'"></script>
+<script src="/static/graph.js" defer></script>
+{% endblock %}

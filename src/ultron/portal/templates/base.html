@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ULTRON{% endblock %}</title>
+  <link rel="stylesheet" href="/static/ultron.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='80'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="/" class="logo">⚡ ULTRON</a>
+      <nav class="topnav">
+        <a href="/" class="topnav-link {% if active == 'home' %}active{% endif %}">Home</a>
+        <a href="/browse" class="topnav-link {% if active == 'browse' %}active{% endif %}">Browse</a>
+        <a href="/graph" class="topnav-link {% if active == 'graph' %}active{% endif %}">Graph</a>
+        <a href="/audit" class="topnav-link {% if active == 'audit' %}active{% endif %}">Audit</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <button class="cmd-palette-trigger" data-cmd-palette aria-label="Buscar">
+        <span class="cmd-icon">⌘K</span>
+        <span class="cmd-label">Buscar…</span>
+      </button>
+      <button class="theme-toggle" data-theme-toggle aria-label="Alternar tema">
+        <span class="theme-icon-dark">☾</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Command Palette -->
+  <div class="cmd-palette" data-cmd-palette-panel hidden>
+    <div class="cmd-palette-backdrop" data-cmd-palette-close></div>
+    <div class="cmd-palette-modal" role="dialog" aria-label="Busca global">
+      <input type="text" class="cmd-palette-input" data-cmd-palette-input
+             placeholder="Buscar manifests, capabilities, publishers…" autocomplete="off">
+      <div class="cmd-palette-results" data-cmd-palette-results>
+        <div class="cmd-empty">Digite para buscar…</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/ultron.js" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
