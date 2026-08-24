@@ -90,3 +90,10 @@ class ArtifactNotFoundError(UltronError):
 
     code = "ARTIFACT_NOT_FOUND"
     http_status = 404
+
+
+class InstallationError(UltronError):
+    """A instalação não pôde ser concluída de forma transacional."""
+
+    code = "INSTALLATION_FAILED"
+    http_status = 409

@@ -17,6 +17,7 @@ from ultron.core.errors import (
     ArtifactNotFoundError,
     DependencyCycleError,
     DependencyResolutionError,
+    InstallationError,
     IntegrityError,
     InvalidManifestError,
     PermissionDeniedError,
@@ -31,6 +32,8 @@ from ultron.core.manifests import (
     SkillManifest,
     WorkflowManifest,
 )
+from ultron.installer import Installer
+from ultron.lockfile import LockedCapability, LockfileStore, UltronLockfile
 from ultron.resolver import DependencyResolver, ResolutionPlan, ResolvedDependency
 from ultron.store import PackageStore
 
@@ -43,9 +46,13 @@ __all__ = [
     "DependencyRef",
     "DependencyResolutionError",
     "DependencyResolver",
+    "InstallationError",
+    "Installer",
     "IntegrityError",
     "IntegrityInfo",
     "InvalidManifestError",
+    "LockedCapability",
+    "LockfileStore",
     "ManifestId",
     "PackManifest",
     "PackageStore",
@@ -60,6 +67,7 @@ __all__ = [
     "SkillManifest",
     # Errors
     "UltronError",
+    "UltronLockfile",
     "UltronVersion",
     "VersionConflictError",
     "WorkflowManifest",

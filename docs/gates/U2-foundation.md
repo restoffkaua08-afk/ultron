@@ -13,7 +13,11 @@ ele não declara o gate completo.
 - exclusão de versões revogadas da resolução;
 - package store local endereçado por SHA-256;
 - escrita atômica, conteúdo somente leitura e validação contra adulteração;
-- API pública para resolver, plano de resolução e package store.
+- lockfile canônico, determinístico e validado por schema;
+- substituição atômica do lockfile;
+- instalação transacional de grafos com versões e hashes exatos;
+- preservação do estado anterior em falhas de integridade ou pacote incompleto;
+- API pública para resolver, instalar, consultar lockfile e package store.
 
 ## Invariantes de segurança
 
@@ -22,11 +26,11 @@ ele não declara o gate completo.
 - um hash informado no manifesto precisa corresponder aos bytes recebidos;
 - conteúdo recuperado é novamente validado pelo SHA-256;
 - versões revogadas nunca são escolhidas.
+- instalar não importa entrypoints, não ativa capabilities e não concede permissões;
+- o lockfile só muda depois que todo o grafo é verificado e armazenado.
 
 ## Ainda necessário para concluir o U2
 
-- lockfile canônico e determinístico;
-- pipeline transacional de instalação;
 - ativação e desativação separadas da instalação;
 - remoção segura e coleta de conteúdo sem referências;
 - rollback e adaptadores de referência;
@@ -34,7 +38,7 @@ ele não declara o gate completo.
 
 ## Evidência desta etapa
 
-- 120 testes automatizados aprovados;
-- cobertura total de 89,49%;
+- 126 testes automatizados aprovados;
+- cobertura total de 90,25%;
 - `ruff check`, `ruff format --check` e `mypy` em modo estrito;
 - nenhuma permissão é concedida e nenhum código de pacote é executado.
