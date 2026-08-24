@@ -1,0 +1,133 @@
+[project]
+name = "ultron"
+version = "0.1.0"
+description = "ULTRON — plataforma independente de capacidades versionadas (agents, skills, workflows, packs)"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Kauã", email = "restoffkaua08-afk@users.noreply.github.com" },
+]
+requires-python = ">=3.12"
+keywords = ["agents", "skills", "registry", "platform", "packaging", "meta"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    "typer>=0.13.0",
+    "structlog>=24.4.0",
+    "httpx>=0.27.0",
+    "anyio>=4.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-cov>=6.0.0",
+    "pytest-asyncio>=0.24.0",
+    "hypothesis>=6.115.0",
+    "ruff>=0.7.0",
+    "mypy>=1.13.0",
+    "uv>=0.5.0",
+]
+sandbox = [
+    "docker>=7.1.0",
+]
+test = ["ultron[dev]"]
+
+[project.scripts]
+ultron = "ultron.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/restoffkaua08-afk/ultron"
+Issues = "https://github.com/restoffkaua08-afk/ultron/issues"
+"Meta Project" = "https://github.com/restoffkaua08-afk/documenta-oMeta"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ultron"]
+
+# --- Ruff ---
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "S",   # flake8-bandit (security)
+    "TCH", # flake8-type-checking
+    "RUF", # Ruff-specific rules
+]
+ignore = [
+    "S101",  # Use of assert detected — fine in tests
+    "B008",  # Function call in default argument — needed for FastAPI Depends
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S", "B011"]
+"src/ultron/__init__.py" = ["F401"]
+
+# --- MyPy ---
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_unused_ignores = true
+show_error_codes = true
+files = ["src/ultron"]
+
+# --- Pytest ---
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--showlocals",
+    "--tb=short",
+]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "unit: unit tests (fast, isolated)",
+    "integration: integration tests (slower, may use real I/O)",
+    "contract: contract tests for Consumer Adapter",
+    "security: security-related tests",
+    "gate_U0: evidence for gate U0",
+    "gate_U1: evidence for gate U1",
+]
+
+# --- Coverage ---
+[tool.coverage.run]
+branch = true
+source = ["src/ultron"]
+omit = ["*/tests/*", "*/__main__.py"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+fail_under = 85
