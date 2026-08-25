@@ -10,7 +10,12 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from ultron.core.errors import CapabilityNotInstalledError, InstallationError
+from ultron.core.errors import (
+    CapabilityNotInstalledError,
+    InstallationError,
+    UnsafeRemovalError,
+)
+from ultron.journal import LockfileJournal
 from ultron.lockfile import LockfileStore, UltronLockfile
 
 
@@ -106,6 +111,56 @@ class LifecycleManager:
 
     def deactivate(self, capability_id: str) -> LifecycleState:
         return self._set_active(capability_id, active=False)
+
+    def remove(self, capability_id: str, journal: LockfileJournal) -> LifecycleState:
+        lockfile = self._lockfile()
+        state = self.reconcile()
+        current = next(
+            (item for item in state.capabilities if item.id == capability_id),
+            None,
+        )
+        if current is None:
+            raise CapabilityNotInstalledError(
+                f"Capability não instalada: {capability_id}", context={"id": capability_id}
+            )
+        if lockfile.root.rsplit("@", 1)[0] == capability_id:
+            raise UnsafeRemovalError(
+                "A capability raiz não pode ser removida", context={"id": capability_id}
+            )
+        if current.active:
+            raise UnsafeRemovalError(
+                "Desative a capability antes de removê-la", context={"id": capability_id}
+            )
+        dependents = tuple(
+            item.id
+            for item in lockfile.capabilities
+            if any(
+                dependency.rsplit("@", 1)[0] == capability_id for dependency in item.dependencies
+            )
+        )
+        if dependents:
+            raise UnsafeRemovalError(
+                f"Capability ainda possui dependentes: {', '.join(dependents)}",
+                context={"id": capability_id, "dependents": dependents},
+            )
+        journal.checkpoint(lockfile)
+        self.lockfiles.write(
+            lockfile.model_copy(
+                update={
+                    "capabilities": tuple(
+                        item for item in lockfile.capabilities if item.id != capability_id
+                    )
+                }
+            )
+        )
+        return self.reconcile()
+
+    def rollback(self, checkpoint: str, journal: LockfileJournal) -> LifecycleState:
+        current = self._lockfile()
+        restored = journal.get(checkpoint)
+        journal.checkpoint(current)
+        self.lockfiles.write(restored)
+        return self.reconcile()
 
     def _set_active(self, capability_id: str, *, active: bool) -> LifecycleState:
         state = self.reconcile()

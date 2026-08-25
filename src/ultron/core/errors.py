@@ -104,3 +104,17 @@ class CapabilityNotInstalledError(UltronError):
 
     code = "CAPABILITY_NOT_INSTALLED"
     http_status = 404
+
+
+class UnsafeRemovalError(UltronError):
+    """A remoção violaria raiz, ativação ou dependências instaladas."""
+
+    code = "UNSAFE_REMOVAL"
+    http_status = 409
+
+
+class CheckpointNotFoundError(UltronError):
+    """Checkpoint solicitado não existe no journal local."""
+
+    code = "CHECKPOINT_NOT_FOUND"
+    http_status = 404

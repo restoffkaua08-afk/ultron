@@ -16,6 +16,7 @@ from ultron.core.base import (
 from ultron.core.errors import (
     ArtifactNotFoundError,
     CapabilityNotInstalledError,
+    CheckpointNotFoundError,
     DependencyCycleError,
     DependencyResolutionError,
     InstallationError,
@@ -24,6 +25,7 @@ from ultron.core.errors import (
     PermissionDeniedError,
     SchemaVersionError,
     UltronError,
+    UnsafeRemovalError,
     VersionConflictError,
 )
 from ultron.core.ids import ManifestId, PublisherId, UltronVersion
@@ -34,6 +36,7 @@ from ultron.core.manifests import (
     WorkflowManifest,
 )
 from ultron.installer import Installer
+from ultron.journal import LockfileJournal
 from ultron.lifecycle import LifecycleManager, LifecycleState, LifecycleStore
 from ultron.lockfile import LockedCapability, LockfileStore, UltronLockfile
 from ultron.resolver import DependencyResolver, ResolutionPlan, ResolvedDependency
@@ -45,6 +48,7 @@ __all__ = [
     "ArtifactNotFoundError",
     "BaseManifest",
     "CapabilityNotInstalledError",
+    "CheckpointNotFoundError",
     "DependencyCycleError",
     "DependencyRef",
     "DependencyResolutionError",
@@ -58,6 +62,7 @@ __all__ = [
     "LifecycleState",
     "LifecycleStore",
     "LockedCapability",
+    "LockfileJournal",
     "LockfileStore",
     "ManifestId",
     "PackManifest",
@@ -71,10 +76,10 @@ __all__ = [
     "RiskLevel",
     "SchemaVersionError",
     "SkillManifest",
-    # Errors
     "UltronError",
     "UltronLockfile",
     "UltronVersion",
+    "UnsafeRemovalError",
     "VersionConflictError",
     "WorkflowManifest",
     "__version__",

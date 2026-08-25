@@ -6,6 +6,7 @@ from collections.abc import Mapping
 
 from ultron.core.base import BaseManifest
 from ultron.core.errors import InstallationError
+from ultron.journal import LockfileJournal
 from ultron.lockfile import LockedCapability, LockfileStore, UltronLockfile
 from ultron.registry import Registry, RegistryStatus
 from ultron.resolver import DependencyResolver
@@ -22,10 +23,12 @@ class Installer:
         registry: Registry,
         package_store: PackageStore,
         lockfile_store: LockfileStore,
+        journal: LockfileJournal | None = None,
     ) -> None:
         self.registry = registry
         self.package_store = package_store
         self.lockfile_store = lockfile_store
+        self.journal = journal
 
     async def install(
         self,
@@ -75,6 +78,9 @@ class Installer:
             root=f"{root.id}@{root.version}",
             capabilities=tuple(sorted(locked, key=lambda item: (item.id, item.version))),
         )
+        previous = self.lockfile_store.read()
+        if previous is not None and self.journal is not None:
+            self.journal.checkpoint(previous)
         self.lockfile_store.write(lockfile)
         return lockfile
 

@@ -14,6 +14,7 @@ from ultron.core.errors import InstallationError, IntegrityError
 from ultron.core.ids import ManifestId
 from ultron.core.manifests import SkillManifest
 from ultron.installer import Installer
+from ultron.journal import LockfileJournal
 from ultron.lockfile import LockfileStore, UltronLockfile
 from ultron.registry import Registry
 from ultron.store import PackageStore
@@ -98,6 +99,31 @@ async def test_failure_preserves_previous_lockfile(registry: Registry, tmp_path:
         await service.install(root, {("acme/root", "1.0.0"): b"tampered"})
 
     assert lock_store.read() == previous
+
+
+@pytest.mark.asyncio
+async def test_successful_replacement_checkpoints_previous_lockfile(
+    registry: Registry, tmp_path: Path
+) -> None:
+    lock_store = LockfileStore(tmp_path / "ultron.lock")
+    previous = UltronLockfile(root="acme/old@1.0.0", capabilities=())
+    lock_store.write(previous)
+    journal = LockfileJournal(tmp_path / "journal")
+    root_bytes = b"root"
+    root = manifest("root", root_bytes)
+    service = Installer(
+        registry,
+        PackageStore(tmp_path / "packages"),
+        lock_store,
+        journal,
+    )
+
+    result = await service.install(root, {("acme/root", "1.0.0"): root_bytes})
+
+    checkpoints = journal.list()
+    assert len(checkpoints) == 1
+    assert journal.get(checkpoints[0]) == previous
+    assert lock_store.read() == result
 
 
 @pytest.mark.asyncio

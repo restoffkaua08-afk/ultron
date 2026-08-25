@@ -19,6 +19,9 @@ ele não declara o gate completo.
 - preservação do estado anterior em falhas de integridade ou pacote incompleto;
 - ativação e desativação explícitas, persistidas e idempotentes;
 - reconciliação segura do estado quando o lockfile ou uma versão muda;
+- remoção bloqueada para raiz, capability ativa ou dependência ainda utilizada;
+- journal imutável de checkpoints e rollback explícito com validação SHA-256;
+- substituições bem-sucedidas de instalação preservam o lockfile anterior no journal;
 - API pública para resolver, instalar, consultar lockfile e package store.
 
 ## Invariantes de segurança
@@ -33,13 +36,13 @@ ele não declara o gate completo.
 
 ## Ainda necessário para concluir o U2
 
-- remoção segura e coleta de conteúdo sem referências;
-- rollback e adaptadores de referência;
+- coleta de conteúdo sem referências;
+- adaptadores de referência;
 - testes end-to-end do ciclo de vida completo.
 
 ## Evidência desta etapa
 
-- 135 testes automatizados aprovados;
-- cobertura total de 91,03%;
+- 140 testes automatizados aprovados;
+- cobertura total de 91,39%;
 - `ruff check`, `ruff format --check` e `mypy` em modo estrito;
 - nenhuma permissão é concedida e nenhum código de pacote é executado.
