@@ -24,6 +24,7 @@ from ultron.core.errors import (
     InvalidManifestError,
     PermissionDeniedError,
     ProtocolCompatibilityError,
+    QuarantinePromotionError,
     SchemaVersionError,
     UltronError,
     UnsafeRemovalError,
@@ -40,6 +41,7 @@ from ultron.installer import Installer
 from ultron.journal import LockfileJournal
 from ultron.lifecycle import LifecycleManager, LifecycleState, LifecycleStore
 from ultron.lockfile import LockedCapability, LockfileStore, UltronLockfile
+from ultron.quarantine import PromotionResult, QuarantineManager, SecurityPrincipal
 from ultron.references import LocalReferenceAdapter, MappingReferenceAdapter, ReferenceAdapter
 from ultron.resolver import DependencyResolver, ResolutionPlan, ResolvedDependency
 from ultron.store import CollectionResult, PackageStore
@@ -77,15 +79,19 @@ __all__ = [
     "PackageStore",
     "Permission",
     "PermissionDeniedError",
+    "PromotionResult",
     "ProtocolCompatibilityError",
     "Provenance",
     "PublisherId",
     "PublisherTrustStore",
+    "QuarantineManager",
+    "QuarantinePromotionError",
     "ReferenceAdapter",
     "ResolutionPlan",
     "ResolvedDependency",
     "RiskLevel",
     "SchemaVersionError",
+    "SecurityPrincipal",
     "SignatureEnvelope",
     "SkillManifest",
     "UltronError",

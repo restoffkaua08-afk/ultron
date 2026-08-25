@@ -543,6 +543,7 @@ class Registry:
         status: RegistryStatus,
         *,
         actor: str = "system",
+        audit_action: str = "status_changed",
         correlation_id: str | None = None,
     ) -> RegistryEntry:
         """Altera somente o estado operacional, preservando o payload imutável."""
@@ -555,7 +556,7 @@ class Registry:
         )
         await self._audit(
             actor=actor,
-            action="status_changed",
+            action=audit_action,
             target_id=mid,
             target_version=version,
             payload_hash=current.payload_hash,

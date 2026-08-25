@@ -125,3 +125,10 @@ class ProtocolCompatibilityError(UltronError):
 
     code = "PROTOCOL_INCOMPATIBLE"
     http_status = 409
+
+
+class QuarantinePromotionError(UltronError):
+    """Uma promoção de quarentena não satisfez autorização ou revalidação."""
+
+    code = "QUARANTINE_PROMOTION_DENIED"
+    http_status = 403

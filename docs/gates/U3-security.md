@@ -18,17 +18,20 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_SECURITY_READY`.
 - chaves revogadas falham de forma fechada;
 - fontes remotas sem assinatura válida entram em quarentena;
 - artefatos locais não assinados preservam compatibilidade com aviso explícito.
+- promoção de quarentena exige role `security_admin` e correlation ID;
+- o artefato é revalidado integralmente no momento da promoção;
+- promoção possui evento dedicado `quarantine_promoted` com ator auditável;
+- versões fora de quarentena não podem usar o fluxo de promoção.
 
 ## Ainda necessário para o gate
 
-- política de promoção e saída de quarentena;
 - sandbox de execução separado do Registry;
 - revogação propagada para instalações existentes;
 - auditoria encadeada e proteção adicional contra adulteração.
 
 ## Evidência desta etapa
 
-- 158 testes automatizados aprovados;
-- cobertura total de 91,61%;
+- 159 testes automatizados aprovados;
+- cobertura total de 91,73%;
 - `ruff check`, `ruff format --check`, `mypy` estrito e build aprovados;
 - nenhum pacote foi importado ou executado durante a validação.
