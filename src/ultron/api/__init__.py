@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 
 from ultron.api.registry_router import build_registry_router
 from ultron.audit import configure_logging, get_logger
+from ultron.cloud import cloud_readiness
 from ultron.portal import router as portal_router
 from ultron.portal import templates as _unused_init_marker
 from ultron.registry import DEFAULT_REGISTRY_PATH, Registry
@@ -107,6 +108,20 @@ def create_app() -> FastAPI:
             "registry": {
                 "path": str(state.config["registry_path"]),
                 "manifests": stats.total,
+            },
+        }
+
+    @app.get("/api/v1/readiness/cloud", tags=["meta"])
+    async def readiness_cloud() -> dict[str, Any]:
+        readiness = cloud_readiness()
+        return {
+            "ready": readiness.ready,
+            "mode": readiness.mode,
+            "components": {
+                "supabase": readiness.supabase,
+                "github_auth": readiness.github_auth,
+                "github_app": readiness.github_app,
+                "mcp_oauth": readiness.mcp_oauth,
             },
         }
 
