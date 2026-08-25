@@ -20,6 +20,10 @@ ULTRON é uma **plataforma de capacidades** (não um agente). Ela organiza, vali
 
 ULTRON **não é** o cérebro do Zane, do Jarvis ou de qualquer agente. É um **catálogo e protocolo** de extensão. Se o ULTRON cair, os agentes continuam operando com suas capacidades nativas.
 
+O modo cloud terá portal Next.js na Vercel, FastAPI em Vercel Functions e
+Supabase para Auth, Postgres, Storage e Realtime. Consumidores como Claude,
+Codex/ChatGPT, Zane e outras IAs usarão contratos REST e MCP neutros.
+
 ## Instalação para desenvolvimento
 
 ```bash
@@ -90,6 +94,11 @@ Graph/Portal        →  dependências, capabilities, health
 ```
 
 Detalhes: [arquitetura mestra](https://github.com/restoffkaua08-afk/Documenta-oMeta/tree/main/docs/ultron/arquitetura).
+
+Decisões atuais: [`docs/architecture/cloud-platform.md`](docs/architecture/cloud-platform.md),
+[`docs/security/identity-and-access.md`](docs/security/identity-and-access.md),
+[`docs/integrations/ai-consumers.md`](docs/integrations/ai-consumers.md) e
+[`docs/product/live-capability-graph.md`](docs/product/live-capability-graph.md).
 
 ## Desenvolvimento
 
