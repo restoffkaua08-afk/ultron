@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from ultron.core.base import BaseManifest, RiskLevel
+from ultron.supply_chain import PublisherTrustStore, SignatureEnvelope
 
 
 class ValidationSeverity(StrEnum):
@@ -127,10 +128,17 @@ class ValidationPipeline:
             PermissionRiskRule(),
         )
 
-    def validate(self, manifest: BaseManifest, artifact: bytes) -> AdmissionDecision:
+    def validate(
+        self,
+        manifest: BaseManifest,
+        artifact: bytes,
+        *,
+        signature: SignatureEnvelope | None = None,
+        trust_store: PublisherTrustStore | None = None,
+    ) -> AdmissionDecision:
         findings = tuple(
             finding for rule in self.rules for finding in rule.inspect(manifest, artifact)
-        )
+        ) + self._signature_findings(manifest, artifact, signature, trust_store)
         quarantined = any(finding.severity == ValidationSeverity.ERROR for finding in findings)
         return AdmissionDecision(
             accepted=not quarantined,
@@ -138,6 +146,36 @@ class ValidationPipeline:
             artifact_sha256=hashlib.sha256(artifact).hexdigest(),
             findings=findings,
         )
+
+    @staticmethod
+    def _signature_findings(
+        manifest: BaseManifest,
+        artifact: bytes,
+        signature: SignatureEnvelope | None,
+        trust_store: PublisherTrustStore | None,
+    ) -> tuple[ValidationFinding, ...]:
+        if signature is None:
+            severity = (
+                ValidationSeverity.WARNING
+                if manifest.provenance.source == "local"
+                else ValidationSeverity.ERROR
+            )
+            return (
+                ValidationFinding(
+                    "SIGNATURE_MISSING",
+                    "Artefato não possui assinatura verificável do publisher",
+                    severity,
+                ),
+            )
+        if trust_store is None or not trust_store.verify(manifest, artifact, signature):
+            return (
+                ValidationFinding(
+                    "SIGNATURE_INVALID",
+                    "Assinatura ausente do trust store, revogada ou inválida",
+                    ValidationSeverity.ERROR,
+                ),
+            )
+        return ()
 
 
 __all__ = [

@@ -43,6 +43,7 @@ from ultron.lockfile import LockedCapability, LockfileStore, UltronLockfile
 from ultron.references import LocalReferenceAdapter, MappingReferenceAdapter, ReferenceAdapter
 from ultron.resolver import DependencyResolver, ResolutionPlan, ResolvedDependency
 from ultron.store import CollectionResult, PackageStore
+from ultron.supply_chain import PublisherTrustStore, SignatureEnvelope
 from ultron.validation import AdmissionDecision, ValidationPipeline, ValidationSeverity
 
 __version__ = "0.1.0"
@@ -79,11 +80,13 @@ __all__ = [
     "ProtocolCompatibilityError",
     "Provenance",
     "PublisherId",
+    "PublisherTrustStore",
     "ReferenceAdapter",
     "ResolutionPlan",
     "ResolvedDependency",
     "RiskLevel",
     "SchemaVersionError",
+    "SignatureEnvelope",
     "SkillManifest",
     "UltronError",
     "UltronLockfile",
