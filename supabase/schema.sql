@@ -46,7 +46,8 @@ create table public.ai_consumers (
   enabled boolean not null default true,
   last_seen_at timestamptz,
   created_at timestamptz not null default now(),
-  unique (organization_id, name)
+  unique (organization_id, name),
+  unique (organization_id, id)
 );
 
 create index ai_consumers_organization_idx
@@ -92,14 +93,16 @@ create table public.capability_dependencies (
 create table public.capability_grants (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
-  consumer_id uuid not null references public.ai_consumers(id) on delete cascade,
+  consumer_id uuid not null,
   capability_id uuid not null references public.capabilities(id) on delete cascade,
   scopes text[] not null default '{}',
   granted_by uuid references auth.users(id) on delete set null,
   expires_at timestamptz,
   revoked_at timestamptz,
   created_at timestamptz not null default now(),
-  unique (consumer_id, capability_id)
+  unique (consumer_id, capability_id),
+  foreign key (organization_id, consumer_id)
+    references public.ai_consumers(organization_id, id) on delete cascade
 );
 
 create index capability_grants_active_idx
@@ -109,15 +112,20 @@ create index capability_grants_active_idx
 create table public.installations (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
-  consumer_id uuid not null references public.ai_consumers(id) on delete cascade,
+  consumer_id uuid not null,
   capability_version_id uuid not null references public.capability_versions(id),
   status public.installation_status not null default 'installed',
   lockfile jsonb not null,
   installed_by uuid references auth.users(id) on delete set null,
   installed_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (consumer_id, capability_version_id)
+  unique (consumer_id, capability_version_id),
+  foreign key (organization_id, consumer_id)
+    references public.ai_consumers(organization_id, id) on delete cascade
 );
+
+create index installations_scope_idx
+  on public.installations (organization_id, consumer_id, status, updated_at desc);
 
 create table public.audit_events (
   id bigint generated always as identity primary key,

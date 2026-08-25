@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from ultron.api.registry_router import build_registry_router
 from ultron.audit import configure_logging, get_logger
 from ultron.cloud import cloud_readiness
+from ultron.installations import ConsumerInstallationStore
 from ultron.mcp import create_mcp_server
 from ultron.portal import router as portal_router
 from ultron.portal import templates as _unused_init_marker
@@ -34,6 +35,7 @@ log = get_logger("ultron.api")
 @dataclass
 class AppState:
     registry: Registry
+    installations: ConsumerInstallationStore
     config: dict[str, Any] = field(default_factory=dict)
 
 
@@ -63,8 +65,16 @@ async def _lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     log.info("opening_registry", path=str(registry_path))
     reg = Registry(registry_path)
     await reg.start()
+    installations = ConsumerInstallationStore(registry_path)
+    await installations.start()
 
-    _set_app_state(AppState(registry=reg, config={"registry_path": registry_path}))
+    _set_app_state(
+        AppState(
+            registry=reg,
+            installations=installations,
+            config={"registry_path": registry_path},
+        )
+    )
     log.info("ultron_ready")
 
     try:
@@ -73,6 +83,7 @@ async def _lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
             yield
     finally:
         log.info("closing_registry")
+        await installations.close()
         await reg.close()
         _set_app_state(None)
 

@@ -24,4 +24,8 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_ZANE_COMPATIBLE`.
 - descoberta MCP prova as oito operações da fonte única;
 - catálogo MCP reutiliza o Registry da API;
 - mutações MCP falham sem confirmação explícita;
-- pendente: adapter de lifecycle persistente por consumer e prova final do gate.
+- lifecycle persiste estado por organização e consumer com transações atômicas;
+- resolução registra raiz e dependências sem executar código no servidor web;
+- ativação é idempotente e remoção protege raiz, ativos e dependências em uso;
+- blueprint Supabase vincula consumer à mesma organização por chave composta;
+- pendente: E2E MCP sobre transporte HTTP real e prova final do gate.

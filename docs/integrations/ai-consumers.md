@@ -36,10 +36,14 @@ upstream. Cada integração usa credencial própria e escopo mínimo.
 - execução stateless e respostas JSON, apropriadas para escala horizontal;
 - descoberta publica exatamente as oito operações do contrato Python/REST/MCP;
 - catálogo MCP consulta o mesmo Registry aberto pela API, sem estado paralelo;
-- lifecycle falha explicitamente enquanto o adapter do consumer não estiver
-  configurado, em vez de simular sucesso ou retornar estado vazio;
+- lifecycle persiste instalações e dependências por `organization_id` e
+  `consumer_id`, sem estado global compartilhado;
 - install, activate, deactivate e remove exigem `confirmed=true` mesmo antes de
   alcançar o adapter.
+- instalação resolve dependências e registra somente metadados verificados; o
+  processo web nunca executa código de agents ou skills;
+- conflitos de versão fazem rollback da transação inteira;
+- remoção bloqueia raiz, capability ativa e dependência ainda utilizada.
 
 Exemplo local para Claude Code:
 

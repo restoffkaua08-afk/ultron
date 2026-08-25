@@ -29,3 +29,10 @@ def test_lineage_policy_requires_same_isolation() -> None:
         "target.namespace = namespace",
     ):
         assert clause in SQL
+
+
+def test_consumer_state_is_bound_to_the_same_organization() -> None:
+    schema = (Path(__file__).parents[2] / "supabase" / "schema.sql").read_text()
+    assert "unique (organization_id, id)" in schema
+    assert schema.count("foreign key (organization_id, consumer_id)") == 2
+    assert "installations_scope_idx" in schema
