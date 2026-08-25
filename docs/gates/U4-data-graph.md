@@ -13,10 +13,13 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_GRAPH_READY`.
 - projeção consultável retorna nós e arestas em ordem determinística;
 - travessia direcionada aceita raízes e profundidade máxima limitada;
 - projeções nunca atravessam organização ou namespace.
+- grafo operacional une manifests, dependências declaradas, consumers e instalações;
+- arestas distinguem `depends_on`, `installed` e resolução exata `resolved_to`;
+- instalações para consumers desconhecidos falham de forma fechada;
+- vizinhança e serialização são determinísticas, independentemente da ordem de entrada.
 
 ## Ainda necessário para o gate
 
-- projeção do grafo de dependências de manifests e instalações;
 - busca e portal do grafo;
 - retenção e coleta segura;
 - testes de escala e integração com o schema cloud.
