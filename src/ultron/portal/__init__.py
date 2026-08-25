@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from ultron.audit import configure_logging
+from ultron.graph import build_operational_graph
 from ultron.registry import Registry, SearchQuery
 
 # Templates ficam em src/ultron/portal/templates/
@@ -161,43 +162,23 @@ async def manifest_detail(
 
 @router.get("/graph", response_class=HTMLResponse)
 async def graph_view(request: Request) -> HTMLResponse:
-    """Visualização do grafo de dependências (2D via Sigma.js)."""
+    """Visualização 2D da mesma projeção servida pela API."""
     reg = _get_registry_singleton()
     all_manifests = await reg.list_all(limit=500)
-
-    nodes = []
-    edges = []
-    for m in all_manifests:
-        nodes.append(
-            {
-                "id": f"{m.manifest.id}@{m.manifest.version}",
-                "label": m.manifest.id.name,
-                "kind": m.manifest.kind,
-                "publisher": m.manifest.publisher,
-            }
-        )
-    id_index = {n["id"]: n for n in nodes}
-    for m in all_manifests:
-        for d in m.manifest.dependencies:
-            target_id = f"{d.id}@?"
-            if target_id not in id_index:
-                # nó fantasma
-                nodes.append(
-                    {
-                        "id": target_id,
-                        "label": d.id.name,
-                        "kind": "?",
-                        "publisher": d.id.publisher,
-                    }
-                )
-                id_index[target_id] = nodes[-1]
-            edges.append(
-                {
-                    "source": f"{m.manifest.id}@{m.manifest.version}",
-                    "target": target_id,
-                    "label": d.version_range,
-                }
-            )
+    graph = build_operational_graph(tuple(entry.manifest for entry in all_manifests))
+    nodes = [
+        {"id": node.id, "label": node.label, "kind": node.kind, "version": node.version}
+        for node in graph.nodes
+    ]
+    edges = [
+        {
+            "source": edge.source,
+            "target": edge.target,
+            "label": edge.constraint or edge.relation,
+            "relation": edge.relation,
+        }
+        for edge in graph.edges
+    ]
 
     return templates.TemplateResponse(
         request,

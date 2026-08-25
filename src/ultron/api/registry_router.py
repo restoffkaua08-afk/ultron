@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from fastapi import APIRouter, HTTPException, Query
 
+from ultron.graph import build_operational_graph
 from ultron.registry import RegistryStatus, SearchQuery
 
 if TYPE_CHECKING:
@@ -102,6 +103,40 @@ def build_registry_router() -> APIRouter:
         reg = _state().registry
         events = await reg.recent_audit(limit=limit)
         return {"events": events}
+
+    @router.get("/graph")
+    async def get_operational_graph(
+        kind: str | None = Query(None),
+        relation: str | None = Query(None),
+    ) -> dict[str, Any]:
+        """Projeção JSON estável do catálogo e de suas dependências."""
+        entries = await _state().registry.list_all(limit=500)
+        graph = build_operational_graph(tuple(entry.manifest for entry in entries))
+        nodes = [node for node in graph.nodes if kind is None or node.kind == kind]
+        node_ids = {node.id for node in nodes}
+        edges = [
+            edge
+            for edge in graph.edges
+            if (relation is None or edge.relation == relation)
+            and edge.source in node_ids
+            and edge.target in node_ids
+        ]
+        return {
+            "schema_version": "1.0.0",
+            "nodes": [
+                {"id": node.id, "kind": node.kind, "label": node.label, "version": node.version}
+                for node in nodes
+            ],
+            "edges": [
+                {
+                    "source": edge.source,
+                    "target": edge.target,
+                    "relation": edge.relation,
+                    "constraint": edge.constraint,
+                }
+                for edge in edges
+            ],
+        }
 
     return router
 

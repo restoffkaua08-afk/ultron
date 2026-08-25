@@ -40,6 +40,7 @@ def test_openapi_served(client: TestClient) -> None:
     assert "/api/v1/health" in paths
     assert "/api/v1/manifests" in paths
     assert "/api/v1/manifests/search" in paths
+    assert "/api/v1/graph" in paths
     assert "/" in paths
 
 
@@ -83,6 +84,24 @@ def test_list_endpoint_empty(client: TestClient) -> None:
     assert r.status_code == 200
     data = r.json()
     assert data["total"] == 0
+
+
+def test_graph_endpoint_uses_versioned_stable_contract(client: TestClient) -> None:
+    _publish_agent(client)
+
+    response = client.get("/api/v1/graph?kind=agent")
+
+    assert response.status_code == 200
+    assert response.json()["schema_version"] == "1.0.0"
+    assert response.json()["nodes"][0]["id"] == "capability:acme/api-agent@1.0.0"
+    assert response.json()["edges"] == []
+
+
+def test_graph_portal_renders_operational_projection(client: TestClient) -> None:
+    _publish_agent(client)
+    response = client.get("/graph")
+    assert response.status_code == 200
+    assert "capability:acme/api-agent@1.0.0" in response.text
 
 
 def test_get_missing_returns_404(client: TestClient) -> None:
