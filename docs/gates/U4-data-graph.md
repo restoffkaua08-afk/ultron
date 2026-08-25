@@ -10,10 +10,13 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_GRAPH_READY`.
 - identificadores são validados contra traversal e formatos ambíguos;
 - lineage registra relações apenas entre registros existentes no mesmo isolamento;
 - payload JSON é persistido de forma canônica e determinística.
+- projeção consultável retorna nós e arestas em ordem determinística;
+- travessia direcionada aceita raízes e profundidade máxima limitada;
+- projeções nunca atravessam organização ou namespace.
 
 ## Ainda necessário para o gate
 
-- consultas completas e projeção do grafo de dependências;
+- projeção do grafo de dependências de manifests e instalações;
 - busca e portal do grafo;
 - retenção e coleta segura;
 - testes de escala e integração com o schema cloud.

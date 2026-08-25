@@ -34,6 +34,19 @@ class DataRecord:
     value: dict[str, Any]
 
 
+@dataclass(frozen=True, slots=True)
+class GraphEdge:
+    source: str
+    target: str
+    relation: str
+
+
+@dataclass(frozen=True, slots=True)
+class GraphProjection:
+    nodes: tuple[DataRecord, ...]
+    edges: tuple[GraphEdge, ...]
+
+
 class NamespaceStore:
     """Store local cuja API não permite consultas sem contexto de organização."""
 
@@ -115,6 +128,52 @@ class NamespaceStore:
         except aiosqlite.IntegrityError as error:
             raise PermissionDeniedError("lineage não pode atravessar namespace ou organização") from error
 
+    async def project_graph(
+        self,
+        context: NamespaceContext,
+        namespace: str,
+        *,
+        roots: tuple[str, ...] = (),
+        max_depth: int = 5,
+    ) -> GraphProjection:
+        """Projeta lineage no namespace, opcionalmente a partir de raízes."""
+        self._validate(namespace)
+        if not 0 <= max_depth <= 20:
+            raise ValueError("max_depth deve estar entre 0 e 20")
+        for root in roots:
+            self._validate(namespace, root)
+        assert self._conn is not None
+        records = await self.list(context, namespace)
+        rows = list(
+            await self._conn.execute_fetchall(
+                "SELECT source_key,target_key,relation FROM lineage_edges "
+                "WHERE organization_id=? AND namespace=? "
+                "ORDER BY source_key,target_key,relation",
+                (context.organization_id, namespace),
+            )
+        )
+        edges = tuple(GraphEdge(str(row[0]), str(row[1]), str(row[2])) for row in rows)
+        if not roots:
+            return GraphProjection(tuple(records), edges)
+
+        visible = set(roots)
+        frontier = set(roots)
+        for _ in range(max_depth):
+            next_frontier = {
+                edge.target
+                for edge in edges
+                if edge.source in frontier and edge.target not in visible
+            }
+            if not next_frontier:
+                break
+            visible.update(next_frontier)
+            frontier = next_frontier
+        nodes = tuple(record for record in records if record.key in visible)
+        selected_edges = tuple(
+            edge for edge in edges if edge.source in visible and edge.target in visible
+        )
+        return GraphProjection(nodes, selected_edges)
+
     @staticmethod
     def _validate(namespace: str, key: str | None = None) -> None:
         if not _SEGMENT.fullmatch(namespace) or (key is not None and not _SEGMENT.fullmatch(key)):
@@ -125,4 +184,10 @@ def _canonical(value: dict[str, Any]) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-__all__ = ["DataRecord", "NamespaceContext", "NamespaceStore"]
+__all__ = [
+    "DataRecord",
+    "GraphEdge",
+    "GraphProjection",
+    "NamespaceContext",
+    "NamespaceStore",
+]
