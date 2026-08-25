@@ -1,6 +1,6 @@
 # U3 — Segurança e supply chain
 
-Status: **em desenvolvimento**. Gate alvo: `ULTRON_SECURITY_READY`.
+Status: **aprovado**. Gate: `ULTRON_SECURITY_READY`.
 
 ## Entregue nesta etapa
 
@@ -30,14 +30,21 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_SECURITY_READY`.
 - head e contagem são persistidos separadamente para detectar truncamento;
 - verificação integral detecta edição, reordenação e remoção de eventos;
 - migração retroativa encadeia eventos de bancos existentes.
+- contrato de sandbox separado do Registry, com backend substituível;
+- execução exige `process.spawn` explicitamente concedido e falha fechada;
+- rede permanece desligada salvo permissão de rede declarada e concedida;
+- imagens são imutáveis e obrigatoriamente fixadas por digest SHA-256;
+- timeout, memória, CPU, processos e volume de saída possuem limites obrigatórios;
+- o Registry nunca importa o entrypoint nem executa código do pacote.
 
-## Ainda necessário para o gate
+## Gate
 
-- sandbox de execução separado do Registry;
+`ULTRON_SECURITY_READY` aprovado para os contratos locais. A implantação cloud
+deve conectar esta porta a workers isolados fora das funções web.
 
 ## Evidência desta etapa
 
-- 163 testes automatizados aprovados;
-- cobertura total de 91,80%;
+- 168 testes automatizados aprovados;
+- cobertura total de 91,51%;
 - `ruff check`, `ruff format --check`, `mypy` estrito e build aprovados;
 - nenhum pacote foi importado ou executado durante a validação.
