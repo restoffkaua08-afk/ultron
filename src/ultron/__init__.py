@@ -15,6 +15,7 @@ from ultron.core.base import (
 )
 from ultron.core.errors import (
     ArtifactNotFoundError,
+    CapabilityNotInstalledError,
     DependencyCycleError,
     DependencyResolutionError,
     InstallationError,
@@ -33,6 +34,7 @@ from ultron.core.manifests import (
     WorkflowManifest,
 )
 from ultron.installer import Installer
+from ultron.lifecycle import LifecycleManager, LifecycleState, LifecycleStore
 from ultron.lockfile import LockedCapability, LockfileStore, UltronLockfile
 from ultron.resolver import DependencyResolver, ResolutionPlan, ResolvedDependency
 from ultron.store import PackageStore
@@ -42,6 +44,7 @@ __all__ = [
     "AgentManifest",
     "ArtifactNotFoundError",
     "BaseManifest",
+    "CapabilityNotInstalledError",
     "DependencyCycleError",
     "DependencyRef",
     "DependencyResolutionError",
@@ -51,6 +54,9 @@ __all__ = [
     "IntegrityError",
     "IntegrityInfo",
     "InvalidManifestError",
+    "LifecycleManager",
+    "LifecycleState",
+    "LifecycleStore",
     "LockedCapability",
     "LockfileStore",
     "ManifestId",

@@ -97,3 +97,10 @@ class InstallationError(UltronError):
 
     code = "INSTALLATION_FAILED"
     http_status = 409
+
+
+class CapabilityNotInstalledError(UltronError):
+    """Uma operação de lifecycle referenciou capability não instalada."""
+
+    code = "CAPABILITY_NOT_INSTALLED"
+    http_status = 404
