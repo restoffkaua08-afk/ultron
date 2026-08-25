@@ -118,3 +118,10 @@ class CheckpointNotFoundError(UltronError):
 
     code = "CHECKPOINT_NOT_FOUND"
     http_status = 404
+
+
+class ProtocolCompatibilityError(UltronError):
+    """Consumer usa uma versão incompatível do protocolo ULTRON."""
+
+    code = "PROTOCOL_INCOMPATIBLE"
+    http_status = 409

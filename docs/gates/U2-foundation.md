@@ -1,7 +1,7 @@
 # U2 — Fundação de instalação reproduzível
 
-Status: **em desenvolvimento**. Este documento registra a primeira entrega do U2;
-ele não declara o gate completo.
+Status: **aprovado**. Gate `ULTRON_INSTALLATION_READY` comprovado pela suíte
+automatizada e pelos invariantes abaixo.
 
 ## Entregue nesta etapa
 
@@ -24,6 +24,7 @@ ele não declara o gate completo.
 - substituições bem-sucedidas de instalação preservam o lockfile anterior no journal;
 - adapters de referência por mapping e filesystem local confinado;
 - coleta conservadora com `dry-run` padrão e proteção do histórico de rollback;
+- handshake SemVer e suíte de conformidade neutra para consumers;
 - API pública para resolver, instalar, consultar lockfile e package store.
 
 ## Invariantes de segurança
@@ -36,13 +37,14 @@ ele não declara o gate completo.
 - instalar não importa entrypoints, não ativa capabilities e não concede permissões;
 - o lockfile só muda depois que todo o grafo é verificado e armazenado.
 
-## Ainda necessário para concluir o U2
+## Decisão do gate
 
-- validação final do gate e contrato de compatibilidade com consumers.
+O U2 está concluído. Integrações HTTP/MCP e autenticação pertencem às entregas
+cloud posteriores; não alteram os invariantes locais de instalação.
 
 ## Evidência desta etapa
 
-- 144 testes automatizados aprovados;
-- cobertura total de 91,50%;
+- 149 testes automatizados aprovados;
+- cobertura total de 91,15%;
 - `ruff check`, `ruff format --check` e `mypy` em modo estrito;
 - nenhuma permissão é concedida e nenhum código de pacote é executado.

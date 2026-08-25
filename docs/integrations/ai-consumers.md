@@ -35,6 +35,18 @@ upstream. Cada integração usa credencial própria e escopo mínimo.
 Consumers offline ou embarcados, como o futuro Zane, podem usar o protocolo
 Python existente e sincronizar apenas metadados autorizados quando houver rede.
 
+## Compatibilidade do protocolo local
+
+- versão atual: `1.0.0`;
+- consumers declaram ID, versão SemVer e ao menos um transporte;
+- versões do mesmo major negociam compatibilidade sem depender do fornecedor;
+- mudança de major falha com `PROTOCOL_INCOMPATIBLE` e contexto auditável;
+- a suíte `verify_consumer` valida catálogo e instalações sem executar mutações;
+- referências inválidas, duplicadas ou com kind desconhecido são rejeitadas.
+
+Claude, Codex, Zane e clientes próprios seguem o mesmo handshake. REST e MCP
+serão apenas transportes deste contrato, não protocolos de lifecycle paralelos.
+
 ## Descoberta e uso
 
 1. consumer autentica;
