@@ -1,6 +1,6 @@
 # U4 — Data e Graph Ready
 
-Status: **em desenvolvimento**. Gate alvo: `ULTRON_GRAPH_READY`.
+Status: **aprovado para os contratos locais**. Gate: `ULTRON_GRAPH_READY`.
 
 ## Entregue nesta etapa
 
@@ -31,7 +31,13 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_GRAPH_READY`.
 - RLS e grants explícitos protegem as tabelas expostas à Data API;
 - índices cobrem foreign keys, projeção, isolamento e expiração;
 - policy de lineage exige origem e destino na mesma organização/namespace.
+- contrato de escala cobre 10.000 nós e 9.999 arestas;
+- busca permanece limitada, determinística e sem arestas órfãs em escala.
 
-## Ainda necessário para o gate
+## Implantação cloud posterior
 
-- teste de escala e aplicação da migration no projeto Supabase quando conectado.
+- converter o blueprint em migration após conectar o projeto Supabase;
+- executar Advisors, testes RLS e plano de consulta no banco real.
+
+Esses itens validam a infraestrutura criada, mas não alteram os invariantes já
+aprovados do gate local.
