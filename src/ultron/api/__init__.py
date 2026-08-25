@@ -21,6 +21,7 @@ from ultron.audit import configure_logging, get_logger
 from ultron.cloud import cloud_readiness
 from ultron.portal import router as portal_router
 from ultron.portal import templates as _unused_init_marker
+from ultron.protocol import protocol_descriptor
 from ultron.registry import DEFAULT_REGISTRY_PATH, Registry
 
 log = get_logger("ultron.api")
@@ -124,6 +125,10 @@ def create_app() -> FastAPI:
                 "mcp_oauth": readiness.mcp_oauth,
             },
         }
+
+    @app.get("/api/v1/protocol", tags=["meta"])
+    async def protocol() -> dict[str, object]:
+        return protocol_descriptor()
 
     return app
 

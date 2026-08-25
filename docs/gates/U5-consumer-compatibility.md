@@ -14,6 +14,9 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_ZANE_COMPATIBLE`.
 - instalação, ativação, desativação e remoção offline falham com erro tipado;
 - leituras locais de instalações/status e capacidades nativas permanecem disponíveis;
 - E2E comprova queda do Ultron sem mutação parcial ou perda das ferramentas nativas.
+- tabela única vincula cada operação Python a REST e MCP sem divergência;
+- todas as mutações exigem confirmação em qualquer transporte;
+- `GET /api/v1/protocol` publica versão e bindings para descoberta universal.
 
 ## Ainda necessário
 

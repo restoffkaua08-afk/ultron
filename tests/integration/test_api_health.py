@@ -41,6 +41,7 @@ def test_openapi_served(client: TestClient) -> None:
     assert "/api/v1/manifests" in paths
     assert "/api/v1/manifests/search" in paths
     assert "/api/v1/graph" in paths
+    assert "/api/v1/protocol" in paths
     assert "/" in paths
 
 
