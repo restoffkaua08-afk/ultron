@@ -27,7 +27,11 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_GRAPH_READY`.
 - coleta usa plano imutável antes da aplicação e chaves exatas, sem exclusão ampla;
 - arestas de lineage associadas são removidas na mesma transação;
 - planos não podem ser aplicados por outra organização.
+- blueprint Supabase equivalente modela records, lineage e expiração;
+- RLS e grants explícitos protegem as tabelas expostas à Data API;
+- índices cobrem foreign keys, projeção, isolamento e expiração;
+- policy de lineage exige origem e destino na mesma organização/namespace.
 
 ## Ainda necessário para o gate
 
-- testes de escala e integração com o schema cloud.
+- teste de escala e aplicação da migration no projeto Supabase quando conectado.

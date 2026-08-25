@@ -1,5 +1,9 @@
 # Preparação do Supabase
 
+`u4-data-graph.sql` é o blueprint revisado de namespaces, lineage e retenção.
+Depois de conectar o projeto, converta-o em migration oficial com a CLI e execute
+Advisors e testes RLS. Os grants são explícitos devido aos defaults atuais da Data API.
+
 `schema.sql` é um blueprint versionado e ainda não foi aplicado. Quando o projeto
 for conectado, a sequência obrigatória será:
 
