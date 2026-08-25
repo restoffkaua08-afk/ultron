@@ -12,6 +12,7 @@ Armazenamento: ``~/.ultron/registry.db`` (criado sob demanda).
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -93,6 +94,12 @@ CREATE TABLE IF NOT EXISTS audit (
 
 CREATE INDEX IF NOT EXISTS ix_audit_occurred ON audit(occurred_at);
 CREATE INDEX IF NOT EXISTS ix_audit_target ON audit(target_id, target_version);
+
+CREATE TABLE IF NOT EXISTS audit_chain_state (
+    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+    head_hash TEXT,
+    event_count INTEGER NOT NULL DEFAULT 0
+);
 """
 
 
@@ -113,6 +120,13 @@ class RegistryEntry:
     status: RegistryStatus
     published_at: datetime
     payload_hash: str
+
+
+@dataclass(frozen=True, slots=True)
+class AuditChainVerification:
+    valid: bool
+    event_count: int
+    broken_event_id: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -311,6 +325,29 @@ class Registry:
                     2,
                     datetime.now(tz=UTC).isoformat(),
                     "Estado persistido de manifests (published/deprecated/revoked)",
+                ),
+            )
+        await self._conn.commit()
+
+        # Migration 3: hash chain auditável e head separado para detectar
+        # adulteração ou truncamento acidental do log.
+        audit_columns = await self._conn.execute_fetchall("PRAGMA table_info(audit)")
+        audit_column_names = {str(column[1]) for column in audit_columns}
+        if "previous_hash" not in audit_column_names:
+            await self._conn.execute("ALTER TABLE audit ADD COLUMN previous_hash TEXT")
+        if "event_hash" not in audit_column_names:
+            await self._conn.execute("ALTER TABLE audit ADD COLUMN event_hash TEXT")
+        migration_3 = await self._conn.execute_fetchall(
+            "SELECT version FROM migrations WHERE version = 3"
+        )
+        if not migration_3:
+            await self._backfill_audit_chain()
+            await self._conn.execute(
+                "INSERT INTO migrations (version, applied_at, description) VALUES (?, ?, ?)",
+                (
+                    3,
+                    datetime.now(tz=UTC).isoformat(),
+                    "Audit log encadeado por SHA-256",
                 ),
             )
         await self._conn.commit()
@@ -710,21 +747,57 @@ class Registry:
         correlation_id: str | None,
     ) -> None:
         assert self._conn is not None
+        state_rows = list(
+            await self._conn.execute_fetchall(
+                "SELECT head_hash, event_count FROM audit_chain_state WHERE singleton = 1"
+            )
+        )
+        previous_hash = str(state_rows[0][0]) if state_rows and state_rows[0][0] else None
+        next_rows = list(
+            await self._conn.execute_fetchall("SELECT COALESCE(MAX(event_id), 0) + 1 FROM audit")
+        )
+        event_id = int(next_rows[0][0])
+        occurred_at = datetime.now(tz=UTC).isoformat()
+        event_hash = _audit_event_hash(
+            event_id,
+            occurred_at,
+            actor,
+            action,
+            target_id,
+            target_version,
+            payload_hash,
+            correlation_id,
+            previous_hash,
+        )
         await self._conn.execute(
             """
             INSERT INTO audit
-            (occurred_at, actor, action, target_id, target_version, payload_hash, correlation_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (event_id, occurred_at, actor, action, target_id, target_version, payload_hash,
+             correlation_id, previous_hash, event_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                datetime.now(tz=UTC).isoformat(),
+                event_id,
+                occurred_at,
                 actor,
                 action,
                 target_id,
                 target_version,
                 payload_hash,
                 correlation_id,
+                previous_hash,
+                event_hash,
             ),
+        )
+        event_count = int(state_rows[0][1]) + 1 if state_rows else 1
+        await self._conn.execute(
+            """
+            INSERT INTO audit_chain_state (singleton, head_hash, event_count)
+            VALUES (1, ?, ?)
+            ON CONFLICT(singleton) DO UPDATE SET head_hash = excluded.head_hash,
+                event_count = excluded.event_count
+            """,
+            (event_hash, event_count),
         )
 
     async def recent_audit(self, limit: int = 50) -> list[dict[str, Any]]:
@@ -733,12 +806,103 @@ class Registry:
         rows = await self._conn.execute_fetchall(
             """
             SELECT occurred_at, actor, action, target_id, target_version,
-                   payload_hash, correlation_id
+                   payload_hash, correlation_id, previous_hash, event_hash
             FROM audit ORDER BY event_id DESC LIMIT ?
             """,
             (limit,),
         )
         return [dict(r) for r in rows]
+
+    async def verify_audit_chain(self) -> AuditChainVerification:
+        """Recalcula toda a cadeia e compara contagem/head persistidos."""
+        assert self._conn is not None
+        rows = list(await self._conn.execute_fetchall("SELECT * FROM audit ORDER BY event_id"))
+        previous_hash: str | None = None
+        for row in rows:
+            expected = _audit_event_hash(
+                int(row["event_id"]),
+                str(row["occurred_at"]),
+                str(row["actor"]),
+                str(row["action"]),
+                row["target_id"],
+                row["target_version"],
+                row["payload_hash"],
+                row["correlation_id"],
+                previous_hash,
+            )
+            if row["previous_hash"] != previous_hash or row["event_hash"] != expected:
+                return AuditChainVerification(False, len(rows), int(row["event_id"]))
+            previous_hash = expected
+        state = list(
+            await self._conn.execute_fetchall(
+                "SELECT head_hash, event_count FROM audit_chain_state WHERE singleton = 1"
+            )
+        )
+        if not state:
+            return AuditChainVerification(not rows, len(rows), None if not rows else 1)
+        valid = state[0][0] == previous_hash and int(state[0][1]) == len(rows)
+        return AuditChainVerification(valid, len(rows), None if valid else 0)
+
+    async def _backfill_audit_chain(self) -> None:
+        assert self._conn is not None
+        rows = list(await self._conn.execute_fetchall("SELECT * FROM audit ORDER BY event_id"))
+        previous_hash: str | None = None
+        for row in rows:
+            event_hash = _audit_event_hash(
+                int(row["event_id"]),
+                str(row["occurred_at"]),
+                str(row["actor"]),
+                str(row["action"]),
+                row["target_id"],
+                row["target_version"],
+                row["payload_hash"],
+                row["correlation_id"],
+                previous_hash,
+            )
+            await self._conn.execute(
+                "UPDATE audit SET previous_hash = ?, event_hash = ? WHERE event_id = ?",
+                (previous_hash, event_hash, int(row["event_id"])),
+            )
+            previous_hash = event_hash
+        await self._conn.execute(
+            """
+            INSERT INTO audit_chain_state (singleton, head_hash, event_count)
+            VALUES (1, ?, ?)
+            ON CONFLICT(singleton) DO UPDATE SET head_hash = excluded.head_hash,
+                event_count = excluded.event_count
+            """,
+            (previous_hash, len(rows)),
+        )
+
+
+def _audit_event_hash(
+    event_id: int,
+    occurred_at: str,
+    actor: str,
+    action: str,
+    target_id: str | None,
+    target_version: str | None,
+    payload_hash: str | None,
+    correlation_id: str | None,
+    previous_hash: str | None,
+) -> str:
+    payload = json.dumps(
+        {
+            "event_id": event_id,
+            "occurred_at": occurred_at,
+            "actor": actor,
+            "action": action,
+            "target_id": target_id,
+            "target_version": target_version,
+            "payload_hash": payload_hash,
+            "correlation_id": correlation_id,
+            "previous_hash": previous_hash,
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()
 
 
 # ---- Helpers de FTS --------------------------------------------------------
@@ -782,6 +946,7 @@ async def _by_risk(conn: aiosqlite.Connection) -> dict[str, int]:
 
 __all__ = [
     "DEFAULT_REGISTRY_PATH",
+    "AuditChainVerification",
     "InvalidManifestError",  # re-export pra conveniência
     "Registry",
     "RegistryEntry",

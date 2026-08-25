@@ -26,15 +26,18 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_SECURITY_READY`.
 - versões revogadas e dependentes transitivos são desativados atomicamente;
 - capabilities independentes permanecem ativas;
 - lockfile e pacotes são preservados para auditoria e rollback.
+- eventos de auditoria formam cadeia SHA-256 com hash anterior;
+- head e contagem são persistidos separadamente para detectar truncamento;
+- verificação integral detecta edição, reordenação e remoção de eventos;
+- migração retroativa encadeia eventos de bancos existentes.
 
 ## Ainda necessário para o gate
 
 - sandbox de execução separado do Registry;
-- auditoria encadeada e proteção adicional contra adulteração.
 
 ## Evidência desta etapa
 
-- 161 testes automatizados aprovados;
-- cobertura total de 91,79%;
+- 163 testes automatizados aprovados;
+- cobertura total de 91,80%;
 - `ruff check`, `ruff format --check`, `mypy` estrito e build aprovados;
 - nenhum pacote foi importado ou executado durante a validação.
