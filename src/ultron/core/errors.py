@@ -127,6 +127,13 @@ class ProtocolCompatibilityError(UltronError):
     http_status = 409
 
 
+class ConsumerUnavailableError(UltronError):
+    """Registry indisponível e nenhum snapshot local íntegro está disponível."""
+
+    code = "CONSUMER_OFFLINE_UNAVAILABLE"
+    http_status = 503
+
+
 class QuarantinePromotionError(UltronError):
     """Uma promoção de quarentena não satisfez autorização ou revalidação."""
 

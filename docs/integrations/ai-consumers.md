@@ -34,6 +34,8 @@ upstream. Cada integração usa credencial própria e escopo mínimo.
 
 Consumers offline ou embarcados, como o futuro Zane, podem usar o protocolo
 Python existente e sincronizar apenas metadados autorizados quando houver rede.
+O catálogo local é atômico e verificado por SHA-256; ausência ou adulteração
+falha de forma tipada, sem substituir indisponibilidade por lista vazia.
 
 ## Compatibilidade do protocolo local
 
