@@ -134,6 +134,13 @@ class ConsumerUnavailableError(UltronError):
     http_status = 503
 
 
+class OfflineMutationError(UltronError):
+    """Uma mutação foi recusada porque o Registry não está disponível."""
+
+    code = "OFFLINE_MUTATION_DENIED"
+    http_status = 503
+
+
 class QuarantinePromotionError(UltronError):
     """Uma promoção de quarentena não satisfez autorização ou revalidação."""
 

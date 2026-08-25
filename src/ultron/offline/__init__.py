@@ -11,8 +11,9 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ultron.consumer import CapabilityRef
-from ultron.core.errors import ConsumerUnavailableError, IntegrityError
+from ultron.consumer import CapabilityRef, ConsumerAdapter, InstallPlan
+from ultron.core.base import BaseManifest
+from ultron.core.errors import ConsumerUnavailableError, IntegrityError, OfflineMutationError
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,8 +83,67 @@ class ResilientCatalog:
         return OfflineDiscovery(tuple(capabilities), "remote", synchronized_at)
 
 
+class ResilientConsumerAdapter(ConsumerAdapter):
+    """Decorator universal: leitura offline, mutações somente online."""
+
+    def __init__(
+        self,
+        primary: ConsumerAdapter,
+        snapshots: CatalogSnapshotStore,
+        is_online: Callable[[], bool],
+    ) -> None:
+        self._primary = primary
+        self._catalog = ResilientCatalog(snapshots)
+        self._is_online = is_online
+
+    def get_capabilities(self) -> list[CapabilityRef]:
+        def fetch() -> list[CapabilityRef]:
+            if not self._is_online():
+                raise ConnectionError("registry offline")
+            return self._primary.get_capabilities()
+
+        return list(self._catalog.discover(fetch).capabilities)
+
+    def check_compatibility(self, manifest: BaseManifest) -> tuple[bool, list[str]]:
+        return self._primary.check_compatibility(manifest)
+
+    def install(self, manifest: BaseManifest) -> InstallPlan:
+        self._require_online("install")
+        return self._primary.install(manifest)
+
+    def activate(self, capability_id: str) -> None:
+        self._require_online("activate")
+        self._primary.activate(capability_id)
+
+    def deactivate(self, capability_id: str) -> None:
+        self._require_online("deactivate")
+        self._primary.deactivate(capability_id)
+
+    def remove(self, capability_id: str) -> None:
+        self._require_online("remove")
+        self._primary.remove(capability_id)
+
+    def list_installed(self) -> list[CapabilityRef]:
+        return self._primary.list_installed()
+
+    def get_status(self, capability_id: str) -> dict[str, object]:
+        return self._primary.get_status(capability_id)
+
+    def _require_online(self, operation: str) -> None:
+        if not self._is_online():
+            raise OfflineMutationError(
+                "mutação recusada enquanto o Ultron está offline",
+                context={"operation": operation},
+            )
+
+
 def _canonical(value: object) -> bytes:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
 
 
-__all__ = ["CatalogSnapshotStore", "OfflineDiscovery", "ResilientCatalog"]
+__all__ = [
+    "CatalogSnapshotStore",
+    "OfflineDiscovery",
+    "ResilientCatalog",
+    "ResilientConsumerAdapter",
+]
