@@ -43,9 +43,11 @@ from ultron.lockfile import LockedCapability, LockfileStore, UltronLockfile
 from ultron.references import LocalReferenceAdapter, MappingReferenceAdapter, ReferenceAdapter
 from ultron.resolver import DependencyResolver, ResolutionPlan, ResolvedDependency
 from ultron.store import CollectionResult, PackageStore
+from ultron.validation import AdmissionDecision, ValidationPipeline, ValidationSeverity
 
 __version__ = "0.1.0"
 __all__ = [
+    "AdmissionDecision",
     "AgentManifest",
     "ArtifactNotFoundError",
     "BaseManifest",
@@ -87,6 +89,8 @@ __all__ = [
     "UltronLockfile",
     "UltronVersion",
     "UnsafeRemovalError",
+    "ValidationPipeline",
+    "ValidationSeverity",
     "VersionConflictError",
     "WorkflowManifest",
     "__version__",

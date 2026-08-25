@@ -101,6 +101,7 @@ class RegistryStatus(str, Enum):  # noqa: UP042 — compatibility w/ existing us
 
     PUBLISHED = "published"  # visível, pode ser instalada
     DEPRECATED = "deprecated"  # marcada como antiga, ainda instalável
+    QUARANTINED = "quarantined"  # retida pela validação de segurança
     REVOKED = "revoked"  # removida de novas instalações
 
 
@@ -325,6 +326,7 @@ class Registry:
         self,
         manifest: BaseManifest,
         *,
+        status: RegistryStatus = RegistryStatus.PUBLISHED,
         actor: str = "system",
         correlation_id: str | None = None,
     ) -> RegistryEntry:
@@ -336,10 +338,10 @@ class Registry:
                 """
                 INSERT INTO manifests
                 (id, version, kind, publisher, name, description, license, risk,
-                 schema_version, payload_json, payload_hash, published_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 schema_version, payload_json, payload_hash, published_at, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (*row, datetime.now(tz=UTC).isoformat()),
+                (*row, datetime.now(tz=UTC).isoformat(), status.value),
             )
         except aiosqlite.IntegrityError as e:
             raise VersionConflictError(
@@ -371,7 +373,7 @@ class Registry:
         )
         await self._audit(
             actor=actor,
-            action="publish",
+            action="quarantine" if status == RegistryStatus.QUARANTINED else "publish",
             target_id=str(manifest.id),
             target_version=manifest.version,
             payload_hash=row[10],
@@ -386,7 +388,7 @@ class Registry:
         )
         return RegistryEntry(
             manifest=manifest,
-            status=RegistryStatus.PUBLISHED,
+            status=status,
             published_at=datetime.now(tz=UTC),
             payload_hash=row[10],
         )

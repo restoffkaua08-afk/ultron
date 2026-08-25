@@ -111,10 +111,14 @@ class Installer:
 
     async def _manifest(self, manifest_id: str, version: str) -> BaseManifest:
         entry = await self.registry.get(manifest_id, version)
-        if entry.status == RegistryStatus.REVOKED:
+        if entry.status not in {RegistryStatus.PUBLISHED, RegistryStatus.DEPRECATED}:
             raise InstallationError(
-                f"Manifest revogado: {manifest_id}@{version}",
-                context={"id": manifest_id, "version": version},
+                f"Manifest não instalável: {manifest_id}@{version}",
+                context={
+                    "id": manifest_id,
+                    "version": version,
+                    "status": entry.status.value,
+                },
             )
         return entry.manifest
 

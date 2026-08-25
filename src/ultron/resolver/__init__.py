@@ -99,7 +99,7 @@ class DependencyResolver:
         compatible = [
             entry.manifest
             for entry in entries
-            if entry.status != RegistryStatus.REVOKED
+            if entry.status in {RegistryStatus.PUBLISHED, RegistryStatus.DEPRECATED}
             and Version(entry.manifest.version) in specifier
         ]
         if not compatible:
