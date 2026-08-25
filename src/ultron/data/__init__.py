@@ -7,6 +7,7 @@ import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +48,14 @@ class GraphProjection:
     edges: tuple[GraphEdge, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class RetentionPlan:
+    organization_id: str
+    namespace: str
+    expired_keys: tuple[str, ...]
+    evaluated_at: datetime
+
+
 class NamespaceStore:
     """Store local cuja API não permite consultas sem contexto de organização."""
 
@@ -64,6 +73,7 @@ class NamespaceStore:
             CREATE TABLE IF NOT EXISTS namespace_records (
               organization_id TEXT NOT NULL, namespace TEXT NOT NULL,
               key TEXT NOT NULL, owner_consumer_id TEXT NOT NULL, value_json TEXT NOT NULL,
+              created_at TEXT NOT NULL, expires_at TEXT,
               PRIMARY KEY (organization_id, namespace, key)
             );
             CREATE TABLE IF NOT EXISTS lineage_edges (
@@ -77,6 +87,18 @@ class NamespaceStore:
             );
             """
         )
+        columns = {
+            str(row[1])
+            for row in await store._conn.execute_fetchall("PRAGMA table_info(namespace_records)")
+        }
+        if "created_at" not in columns:
+            await store._conn.execute("ALTER TABLE namespace_records ADD COLUMN created_at TEXT")
+            await store._conn.execute(
+                "UPDATE namespace_records SET created_at=? WHERE created_at IS NULL",
+                (datetime.now(tz=UTC).isoformat(),),
+            )
+        if "expires_at" not in columns:
+            await store._conn.execute("ALTER TABLE namespace_records ADD COLUMN expires_at TEXT")
         await store._conn.execute("PRAGMA foreign_keys=ON")
         await store._conn.commit()
         try:
@@ -84,12 +106,28 @@ class NamespaceStore:
         finally:
             await store._conn.close()
 
-    async def put(self, context: NamespaceContext, namespace: str, key: str, value: dict[str, Any]) -> None:
+    async def put(
+        self,
+        context: NamespaceContext,
+        namespace: str,
+        key: str,
+        value: dict[str, Any],
+        *,
+        expires_at: datetime | None = None,
+    ) -> None:
         self._validate(namespace, key)
         assert self._conn is not None
         await self._conn.execute(
-            "INSERT INTO namespace_records VALUES (?, ?, ?, ?, ?)",
-            (context.organization_id, namespace, key, context.consumer_id, _canonical(value)),
+            "INSERT INTO namespace_records VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                context.organization_id,
+                namespace,
+                key,
+                context.consumer_id,
+                _canonical(value),
+                datetime.now(tz=UTC).isoformat(),
+                expires_at.astimezone(UTC).isoformat() if expires_at is not None else None,
+            ),
         )
         await self._conn.commit()
 
@@ -174,6 +212,57 @@ class NamespaceStore:
         )
         return GraphProjection(nodes, selected_edges)
 
+    async def plan_retention(
+        self,
+        context: NamespaceContext,
+        namespace: str,
+        *,
+        now: datetime | None = None,
+    ) -> RetentionPlan:
+        """Cria plano sem alterar dados; apenas registros com expiração explícita entram."""
+        self._validate(namespace)
+        evaluated_at = (now or datetime.now(tz=UTC)).astimezone(UTC)
+        assert self._conn is not None
+        rows = await self._conn.execute_fetchall(
+            "SELECT key FROM namespace_records WHERE organization_id=? AND namespace=? "
+            "AND expires_at IS NOT NULL AND expires_at<=? ORDER BY key",
+            (context.organization_id, namespace, evaluated_at.isoformat()),
+        )
+        return RetentionPlan(
+            context.organization_id,
+            namespace,
+            tuple(str(row[0]) for row in rows),
+            evaluated_at,
+        )
+
+    async def apply_retention(self, context: NamespaceContext, plan: RetentionPlan) -> int:
+        """Aplica somente o plano imutável e remove arestas órfãs atomicamente."""
+        if context.organization_id != plan.organization_id:
+            raise PermissionDeniedError("plano de retenção pertence a outra organização")
+        assert self._conn is not None
+        await self._conn.execute("BEGIN IMMEDIATE")
+        try:
+            removed = 0
+            for key in plan.expired_keys:
+                cursor = await self._conn.execute(
+                    "DELETE FROM lineage_edges WHERE organization_id=? AND namespace=? "
+                    "AND (source_key=? OR target_key=?)",
+                    (plan.organization_id, plan.namespace, key, key),
+                )
+                await cursor.close()
+                cursor = await self._conn.execute(
+                    "DELETE FROM namespace_records WHERE organization_id=? AND namespace=? "
+                    "AND key=? AND expires_at IS NOT NULL AND expires_at<=?",
+                    (plan.organization_id, plan.namespace, key, plan.evaluated_at.isoformat()),
+                )
+                removed += cursor.rowcount
+                await cursor.close()
+            await self._conn.commit()
+            return removed
+        except Exception:
+            await self._conn.rollback()
+            raise
+
     @staticmethod
     def _validate(namespace: str, key: str | None = None) -> None:
         if not _SEGMENT.fullmatch(namespace) or (key is not None and not _SEGMENT.fullmatch(key)):
@@ -190,4 +279,5 @@ __all__ = [
     "GraphProjection",
     "NamespaceContext",
     "NamespaceStore",
+    "RetentionPlan",
 ]

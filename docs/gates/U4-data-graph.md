@@ -23,8 +23,11 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_GRAPH_READY`.
 - busca combina texto, tipo, relação e limite controlado;
 - texto pesquisa ID, nome e versão sem diferenciar maiúsculas;
 - portal e API compartilham a mesma implementação de filtragem.
+- retenção exige expiração explícita por registro e nunca assume prazo global;
+- coleta usa plano imutável antes da aplicação e chaves exatas, sem exclusão ampla;
+- arestas de lineage associadas são removidas na mesma transação;
+- planos não podem ser aplicados por outra organização.
 
 ## Ainda necessário para o gate
 
-- retenção e coleta segura;
 - testes de escala e integração com o schema cloud.
