@@ -44,6 +44,7 @@ from ultron.lockfile import LockedCapability, LockfileStore, UltronLockfile
 from ultron.quarantine import PromotionResult, QuarantineManager, SecurityPrincipal
 from ultron.references import LocalReferenceAdapter, MappingReferenceAdapter, ReferenceAdapter
 from ultron.resolver import DependencyResolver, ResolutionPlan, ResolvedDependency
+from ultron.revocation import RevocationManager, RevocationReport
 from ultron.store import CollectionResult, PackageStore
 from ultron.supply_chain import PublisherTrustStore, SignatureEnvelope
 from ultron.validation import AdmissionDecision, ValidationPipeline, ValidationSeverity
@@ -89,6 +90,8 @@ __all__ = [
     "ReferenceAdapter",
     "ResolutionPlan",
     "ResolvedDependency",
+    "RevocationManager",
+    "RevocationReport",
     "RiskLevel",
     "SchemaVersionError",
     "SecurityPrincipal",

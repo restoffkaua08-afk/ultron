@@ -565,6 +565,26 @@ class Registry:
         await self._conn.commit()
         return await self.get(mid, version)
 
+    async def revoke(
+        self,
+        manifest_id: str | ManifestId,
+        version: str,
+        *,
+        actor: str,
+        correlation_id: str,
+    ) -> RegistryEntry:
+        """Revoga uma versão com evento explícito para propagação downstream."""
+        if not actor.strip() or not correlation_id.strip():
+            raise ValueError("Revogação exige actor e correlation_id")
+        return await self.set_status(
+            manifest_id,
+            version,
+            RegistryStatus.REVOKED,
+            actor=actor,
+            audit_action="capability_revoked",
+            correlation_id=correlation_id,
+        )
+
     async def _fts_query(self, fts_expr: str, column: str = "") -> list[tuple[str, str]]:
         """Roda MATCH na FTS5 e retorna lista de (id, version)."""
         assert self._conn is not None

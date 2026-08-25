@@ -22,16 +22,19 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_SECURITY_READY`.
 - o artefato é revalidado integralmente no momento da promoção;
 - promoção possui evento dedicado `quarantine_promoted` com ator auditável;
 - versões fora de quarentena não podem usar o fluxo de promoção.
+- revogação exige ator e correlation ID e gera `capability_revoked`;
+- versões revogadas e dependentes transitivos são desativados atomicamente;
+- capabilities independentes permanecem ativas;
+- lockfile e pacotes são preservados para auditoria e rollback.
 
 ## Ainda necessário para o gate
 
 - sandbox de execução separado do Registry;
-- revogação propagada para instalações existentes;
 - auditoria encadeada e proteção adicional contra adulteração.
 
 ## Evidência desta etapa
 
-- 159 testes automatizados aprovados;
-- cobertura total de 91,73%;
+- 161 testes automatizados aprovados;
+- cobertura total de 91,79%;
 - `ruff check`, `ruff format --check`, `mypy` estrito e build aprovados;
 - nenhum pacote foi importado ou executado durante a validação.

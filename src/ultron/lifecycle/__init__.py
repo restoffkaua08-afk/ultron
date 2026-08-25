@@ -112,6 +112,27 @@ class LifecycleManager:
     def deactivate(self, capability_id: str) -> LifecycleState:
         return self._set_active(capability_id, active=False)
 
+    def deactivate_many(self, capability_ids: frozenset[str]) -> LifecycleState:
+        """Desativa um conjunto em uma única escrita atômica de estado."""
+        state = self.reconcile()
+        installed = {item.id for item in state.capabilities}
+        missing = capability_ids - installed
+        if missing:
+            raise CapabilityNotInstalledError(
+                f"Capabilities não instaladas: {', '.join(sorted(missing))}",
+                context={"ids": sorted(missing)},
+            )
+        updated = state.model_copy(
+            update={
+                "capabilities": tuple(
+                    item.model_copy(update={"active": False}) if item.id in capability_ids else item
+                    for item in state.capabilities
+                )
+            }
+        )
+        self.states.write(updated)
+        return updated
+
     def remove(self, capability_id: str, journal: LockfileJournal) -> LifecycleState:
         lockfile = self._lockfile()
         state = self.reconcile()
