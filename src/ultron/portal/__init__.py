@@ -161,11 +161,16 @@ async def manifest_detail(
 
 
 @router.get("/graph", response_class=HTMLResponse)
-async def graph_view(request: Request) -> HTMLResponse:
+async def graph_view(
+    request: Request,
+    q: str = Query("", max_length=120),
+    kind: str | None = Query(None),
+) -> HTMLResponse:
     """Visualização 2D da mesma projeção servida pela API."""
     reg = _get_registry_singleton()
     all_manifests = await reg.list_all(limit=500)
     graph = build_operational_graph(tuple(entry.manifest for entry in all_manifests))
+    graph = graph.search(q, kind=kind, limit=500)
     nodes = [
         {"id": node.id, "label": node.label, "kind": node.kind, "version": node.version}
         for node in graph.nodes
@@ -188,6 +193,8 @@ async def graph_view(request: Request) -> HTMLResponse:
             "active": "graph",
             "node_count": len(nodes),
             "edge_count": len(edges),
+            "q": q,
+            "kind": kind or "",
         },
     )
 

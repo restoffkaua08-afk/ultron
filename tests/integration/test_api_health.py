@@ -96,12 +96,16 @@ def test_graph_endpoint_uses_versioned_stable_contract(client: TestClient) -> No
     assert response.json()["nodes"][0]["id"] == "capability:acme/api-agent@1.0.0"
     assert response.json()["edges"] == []
 
+    filtered = client.get("/api/v1/graph?q=missing")
+    assert filtered.json()["nodes"] == []
+
 
 def test_graph_portal_renders_operational_projection(client: TestClient) -> None:
     _publish_agent(client)
     response = client.get("/graph")
     assert response.status_code == 200
     assert "capability:acme/api-agent@1.0.0" in response.text
+    assert client.get("/graph?q=missing").status_code == 200
 
 
 def test_get_missing_returns_404(client: TestClient) -> None:

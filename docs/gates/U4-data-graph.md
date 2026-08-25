@@ -20,9 +20,11 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_GRAPH_READY`.
 - endpoint `GET /api/v1/graph` publica contrato JSON versionado;
 - filtros por tipo de nó e relação mantêm apenas arestas com extremos visíveis;
 - portal `/graph` reutiliza a mesma projeção operacional da API.
+- busca combina texto, tipo, relação e limite controlado;
+- texto pesquisa ID, nome e versão sem diferenciar maiúsculas;
+- portal e API compartilham a mesma implementação de filtragem.
 
 ## Ainda necessário para o gate
 
-- busca textual avançada no grafo;
 - retenção e coleta segura;
 - testes de escala e integração com o schema cloud.

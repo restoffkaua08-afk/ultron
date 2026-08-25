@@ -13,6 +13,16 @@
 {% endblock %}
 {% block content %}
 <section class="content-full">
+  <form class="graph-search" method="get" action="/graph">
+    <input name="q" value="{{ q }}" maxlength="120" placeholder="Buscar nó, versão ou ID…">
+    <select name="kind">
+      <option value="">Todos os tipos</option>
+      {% for option in ['agent', 'skill', 'workflow', 'pack', 'consumer', 'capability'] %}
+      <option value="{{ option }}" {% if kind == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filtrar grafo</button>
+  </form>
   <div class="graph-info">
     <strong>{{ node_count }}</strong> nodes · <strong>{{ edge_count }}</strong> edges
   </div>

@@ -55,3 +55,16 @@ def test_graph_output_is_deterministic(make_agent, make_skill):
     left = build_operational_graph((make_agent(), make_skill()))
     right = build_operational_graph((make_skill(), make_agent()))
     assert left == right
+
+
+def test_graph_search_matches_id_label_version_and_keeps_valid_edges(make_agent, make_skill):
+    graph = build_operational_graph((make_agent(), make_skill()))
+    result = graph.search("research", kind="agent")
+    assert [node.label for node in result.nodes] == ["acme/research-agent"]
+    assert result.edges == ()
+    assert graph.search("0.1.0").nodes[0].version == "0.1.0"
+
+
+def test_graph_search_rejects_unbounded_limits():
+    with pytest.raises(ValueError, match="limit"):
+        build_operational_graph(()).search(limit=501)

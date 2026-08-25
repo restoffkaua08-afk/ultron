@@ -38,6 +38,39 @@ class OperationalGraph:
         }
         return tuple(node for node in self.nodes if node.id in adjacent)
 
+    def search(
+        self,
+        text: str = "",
+        *,
+        kind: str | None = None,
+        relation: str | None = None,
+        limit: int = 100,
+    ) -> OperationalGraph:
+        """Filtra nós e preserva somente arestas cujos extremos continuam visíveis."""
+        if not 1 <= limit <= 500:
+            raise ValueError("limit deve estar entre 1 e 500")
+        needle = text.strip().casefold()
+        nodes = tuple(
+            node
+            for node in self.nodes
+            if (kind is None or node.kind == kind)
+            and (
+                not needle
+                or needle in node.id.casefold()
+                or needle in node.label.casefold()
+                or (node.version is not None and needle in node.version.casefold())
+            )
+        )[:limit]
+        node_ids = {node.id for node in nodes}
+        edges = tuple(
+            edge
+            for edge in self.edges
+            if edge.source in node_ids
+            and edge.target in node_ids
+            and (relation is None or edge.relation == relation)
+        )
+        return OperationalGraph(nodes, edges)
+
 
 def build_operational_graph(
     manifests: tuple[BaseManifest, ...],

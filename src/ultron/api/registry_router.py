@@ -106,26 +106,20 @@ def build_registry_router() -> APIRouter:
 
     @router.get("/graph")
     async def get_operational_graph(
+        q: str = Query("", max_length=120),
         kind: str | None = Query(None),
         relation: str | None = Query(None),
+        limit: int = Query(100, ge=1, le=500),
     ) -> dict[str, Any]:
         """Projeção JSON estável do catálogo e de suas dependências."""
         entries = await _state().registry.list_all(limit=500)
         graph = build_operational_graph(tuple(entry.manifest for entry in entries))
-        nodes = [node for node in graph.nodes if kind is None or node.kind == kind]
-        node_ids = {node.id for node in nodes}
-        edges = [
-            edge
-            for edge in graph.edges
-            if (relation is None or edge.relation == relation)
-            and edge.source in node_ids
-            and edge.target in node_ids
-        ]
+        graph = graph.search(q, kind=kind, relation=relation, limit=limit)
         return {
             "schema_version": "1.0.0",
             "nodes": [
                 {"id": node.id, "kind": node.kind, "label": node.label, "version": node.version}
-                for node in nodes
+                for node in graph.nodes
             ],
             "edges": [
                 {
@@ -134,7 +128,7 @@ def build_registry_router() -> APIRouter:
                     "relation": edge.relation,
                     "constraint": edge.constraint,
                 }
-                for edge in edges
+                for edge in graph.edges
             ],
         }
 
