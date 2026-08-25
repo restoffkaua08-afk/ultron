@@ -8,6 +8,7 @@ from ultron.core.base import BaseManifest
 from ultron.core.errors import InstallationError
 from ultron.journal import LockfileJournal
 from ultron.lockfile import LockedCapability, LockfileStore, UltronLockfile
+from ultron.references import ReferenceAdapter
 from ultron.registry import Registry, RegistryStatus
 from ultron.resolver import DependencyResolver
 from ultron.store import PackageStore
@@ -35,11 +36,35 @@ class Installer:
         root: BaseManifest,
         artifacts: Mapping[ArtifactKey, bytes],
     ) -> UltronLockfile:
+        manifests = await self._resolve_manifests(root)
+        return self._install_resolved(root, manifests, artifacts)
+
+    async def install_from(
+        self,
+        root: BaseManifest,
+        adapter: ReferenceAdapter,
+    ) -> UltronLockfile:
+        """Instala por uma referência sem delegar integridade ao adapter."""
+        manifests = await self._resolve_manifests(root)
+        artifacts = {
+            (str(manifest.id), manifest.version): adapter.fetch(manifest) for manifest in manifests
+        }
+        return self._install_resolved(root, manifests, artifacts)
+
+    async def _resolve_manifests(self, root: BaseManifest) -> list[BaseManifest]:
         plan = await DependencyResolver(self.registry).resolve(root)
         manifests: list[BaseManifest] = []
         for item in plan.dependencies:
             manifests.append(await self._manifest(item.id, item.version))
         manifests.append(root)
+        return manifests
+
+    def _install_resolved(
+        self,
+        root: BaseManifest,
+        manifests: list[BaseManifest],
+        artifacts: Mapping[ArtifactKey, bytes],
+    ) -> UltronLockfile:
         selected_versions = {str(manifest.id): manifest.version for manifest in manifests}
         locked: list[LockedCapability] = []
 

@@ -39,8 +39,9 @@ from ultron.installer import Installer
 from ultron.journal import LockfileJournal
 from ultron.lifecycle import LifecycleManager, LifecycleState, LifecycleStore
 from ultron.lockfile import LockedCapability, LockfileStore, UltronLockfile
+from ultron.references import LocalReferenceAdapter, MappingReferenceAdapter, ReferenceAdapter
 from ultron.resolver import DependencyResolver, ResolutionPlan, ResolvedDependency
-from ultron.store import PackageStore
+from ultron.store import CollectionResult, PackageStore
 
 __version__ = "0.1.0"
 __all__ = [
@@ -49,6 +50,7 @@ __all__ = [
     "BaseManifest",
     "CapabilityNotInstalledError",
     "CheckpointNotFoundError",
+    "CollectionResult",
     "DependencyCycleError",
     "DependencyRef",
     "DependencyResolutionError",
@@ -61,16 +63,19 @@ __all__ = [
     "LifecycleManager",
     "LifecycleState",
     "LifecycleStore",
+    "LocalReferenceAdapter",
     "LockedCapability",
     "LockfileJournal",
     "LockfileStore",
     "ManifestId",
+    "MappingReferenceAdapter",
     "PackManifest",
     "PackageStore",
     "Permission",
     "PermissionDeniedError",
     "Provenance",
     "PublisherId",
+    "ReferenceAdapter",
     "ResolutionPlan",
     "ResolvedDependency",
     "RiskLevel",
