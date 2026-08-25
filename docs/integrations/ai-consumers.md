@@ -30,6 +30,27 @@ Para IAs compatíveis com Model Context Protocol:
 O servidor MCP não repassa o token recebido para GitHub, Supabase ou outro
 upstream. Cada integração usa credencial própria e escopo mínimo.
 
+#### Transporte executável
+
+- endpoint estável: `POST /mcp` (Streamable HTTP);
+- execução stateless e respostas JSON, apropriadas para escala horizontal;
+- descoberta publica exatamente as oito operações do contrato Python/REST/MCP;
+- catálogo MCP consulta o mesmo Registry aberto pela API, sem estado paralelo;
+- lifecycle falha explicitamente enquanto o adapter do consumer não estiver
+  configurado, em vez de simular sucesso ou retornar estado vazio;
+- install, activate, deactivate e remove exigem `confirmed=true` mesmo antes de
+  alcançar o adapter.
+
+Exemplo local para Claude Code:
+
+```bash
+claude mcp add --transport http ultron http://localhost:8000/mcp
+```
+
+O mesmo URL pode ser utilizado por qualquer cliente compatível com MCP
+Streamable HTTP. Em produção, autenticação OAuth e isolamento por organização
+serão aplicados antes de liberar o endpoint publicamente.
+
 ### Adapter local
 
 Consumers offline ou embarcados, como o futuro Zane, podem usar o protocolo

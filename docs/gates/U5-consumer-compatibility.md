@@ -20,4 +20,8 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_ZANE_COMPATIBLE`.
 
 ## Ainda necessário
 
-- contrato MCP/REST equivalente e prova final do gate.
+- servidor MCP Streamable HTTP executável e montado em `/mcp`;
+- descoberta MCP prova as oito operações da fonte única;
+- catálogo MCP reutiliza o Registry da API;
+- mutações MCP falham sem confirmação explícita;
+- pendente: adapter de lifecycle persistente por consumer e prova final do gate.

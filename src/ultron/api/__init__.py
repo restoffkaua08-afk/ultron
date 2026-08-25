@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import os
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from ultron.api.registry_router import build_registry_router
 from ultron.audit import configure_logging, get_logger
 from ultron.cloud import cloud_readiness
+from ultron.mcp import create_mcp_server
 from ultron.portal import router as portal_router
 from ultron.portal import templates as _unused_init_marker
 from ultron.protocol import protocol_descriptor
@@ -67,7 +68,9 @@ async def _lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     log.info("ultron_ready")
 
     try:
-        yield
+        async with AsyncExitStack() as stack:
+            await stack.enter_async_context(app.state.ultron_mcp.session_manager.run())
+            yield
     finally:
         log.info("closing_registry")
         await reg.close()
@@ -78,6 +81,7 @@ async def _lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
 
 
 def create_app() -> FastAPI:
+    mcp_server = create_mcp_server()
     app = FastAPI(
         title="ULTRON API",
         version="0.1.0",
@@ -91,6 +95,10 @@ def create_app() -> FastAPI:
     # Static files (CSS, JS do portal)
     static_dir = Path(__file__).parent.parent / "portal" / "static"
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+    # MCP Streamable HTTP stateless. Clientes conectam em /mcp.
+    app.state.ultron_mcp = mcp_server
+    app.mount("/mcp", mcp_server.streamable_http_app(), name="mcp")
 
     # API JSON de manifests
     app.include_router(build_registry_router(), prefix="/api/v1")
