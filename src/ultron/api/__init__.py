@@ -107,7 +107,7 @@ def create_app() -> FastAPI:
     static_dir = Path(__file__).parent.parent / "portal" / "static"
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-    # MCP Streamable HTTP stateless. Clientes conectam em /mcp.
+    # MCP Streamable HTTP stateless. URL canônica: /mcp/ (barra final).
     app.state.ultron_mcp = mcp_server
     app.mount("/mcp", mcp_server.streamable_http_app(), name="mcp")
 
