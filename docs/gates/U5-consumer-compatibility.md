@@ -1,6 +1,6 @@
 # U5 — Consumer e Zane Compatibility
 
-Status: **em desenvolvimento**. Gate alvo: `ULTRON_ZANE_COMPATIBLE`.
+Status: **aprovado**. Gate: `ULTRON_ZANE_COMPATIBLE`.
 
 ## Entregue nesta etapa
 
@@ -18,9 +18,9 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_ZANE_COMPATIBLE`.
 - todas as mutações exigem confirmação em qualquer transporte;
 - `GET /api/v1/protocol` publica versão e bindings para descoberta universal.
 
-## Ainda necessário
+## Evidência final
 
-- servidor MCP Streamable HTTP executável e montado em `/mcp`;
+- servidor MCP Streamable HTTP executável e montado em `/mcp/`;
 - descoberta MCP prova as oito operações da fonte única;
 - catálogo MCP reutiliza o Registry da API;
 - mutações MCP falham sem confirmação explícita;
@@ -28,4 +28,9 @@ Status: **em desenvolvimento**. Gate alvo: `ULTRON_ZANE_COMPATIBLE`.
 - resolução registra raiz e dependências sem executar código no servidor web;
 - ativação é idempotente e remoção protege raiz, ativos e dependências em uso;
 - blueprint Supabase vincula consumer à mesma organização por chave composta;
-- pendente: E2E MCP sobre transporte HTTP real e prova final do gate.
+- cliente oficial MCP negocia sessão real com Uvicorn por `/mcp/`;
+- E2E HTTP descobre oito tools, instala, ativa e comprova isolamento entre organizações.
+
+O gate é aprovado porque a indisponibilidade do Ultron não impede o consumer de
+iniciar, nenhuma mutação offline é simulada e o transporte remoto executável
+preserva os mesmos contratos e confirmações do adapter local.
