@@ -2,6 +2,8 @@
 
 Status: **preparado, ainda não provisionado**.
 
+O desenvolvimento continuou em [`U6-cloud-foundation.md`](U6-cloud-foundation.md).
+
 ## Entregue
 
 - inventário completo de variáveis sem valores sensíveis;
