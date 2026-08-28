@@ -1,5 +1,14 @@
--- ULTRON cloud schema blueprint.
--- Será convertido em migration oficial e aplicado somente após conectar o projeto.
+-- ULTRON U6 cloud schema candidate.
+-- Ainda não é migration oficial: a CLI não está disponível neste ambiente e
+-- nenhum projeto Supabase dedicado ao ULTRON foi identificado para aplicação.
+
+-- Novos objetos nunca devem herdar exposição automática à Data API.
+alter default privileges for role postgres in schema public
+  revoke select, insert, update, delete on tables from anon, authenticated, service_role;
+alter default privileges for role postgres in schema public
+  revoke usage, select on sequences from anon, authenticated, service_role;
+alter default privileges for role postgres in schema public
+  revoke execute on functions from public, anon, authenticated, service_role;
 
 create schema if not exists private;
 revoke all on schema private from public, anon, authenticated;
@@ -131,12 +140,14 @@ create table public.audit_events (
   id bigint generated always as identity primary key,
   organization_id uuid not null references public.organizations(id) on delete cascade,
   actor_user_id uuid references auth.users(id) on delete set null,
-  actor_consumer_id uuid references public.ai_consumers(id) on delete set null,
+  actor_consumer_id uuid,
   action text not null,
   target_type text,
   target_id text,
   payload jsonb not null default '{}',
-  occurred_at timestamptz not null default now()
+  occurred_at timestamptz not null default now(),
+  foreign key (organization_id, actor_consumer_id)
+    references public.ai_consumers(organization_id, id) on delete set null
 );
 
 create index audit_events_timeline_idx
@@ -277,7 +288,16 @@ create policy installations_member_all on public.installations for all to authen
 create policy audit_member_select on public.audit_events for select to authenticated
   using ((select private.is_org_member(organization_id)));
 
-revoke all on all tables in schema public from anon;
-grant select, insert, update, delete on all tables in schema public to authenticated;
-grant usage, select on all sequences in schema public to authenticated;
-revoke insert, update, delete on public.audit_events from authenticated;
+-- Data API: acesso ao objeto e isolamento de linhas são decisões separadas.
+-- Primeiro revoga tudo; depois concede somente as operações necessárias.
+revoke all on all tables in schema public from anon, authenticated;
+revoke all on all sequences in schema public from anon, authenticated;
+
+grant select, update on table public.profiles to authenticated;
+grant select on table public.organizations, public.organization_members to authenticated;
+grant select, insert, update, delete on table public.ai_consumers to authenticated;
+grant select, insert, update, delete on table public.capabilities to authenticated;
+grant select on table public.capability_versions, public.capability_dependencies to authenticated;
+grant select, insert, update, delete on table public.capability_grants to authenticated;
+grant select, insert, update, delete on table public.installations to authenticated;
+grant select on table public.audit_events to authenticated;
