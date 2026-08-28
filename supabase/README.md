@@ -1,19 +1,26 @@
 # Preparação do Supabase
 
-`u4-data-graph.sql` é o blueprint revisado de namespaces, lineage e retenção.
-Depois de conectar o projeto, converta-o em migration oficial com a CLI e execute
-Advisors e testes RLS. Os grants são explícitos devido aos defaults atuais da Data API.
+`u4-data-graph.sql` é o candidato revisado de namespaces, lineage e retenção.
+Ele agora usa chaves compostas para impedir relações entre organizações ou
+namespaces diferentes.
 
-`schema.sql` é um blueprint versionado e ainda não foi aplicado. Quando o projeto
+`schema.sql` é um candidato versionado e ainda não foi aplicado. Revoga grants
+automáticos, usa privilégios mínimos por tabela e mantém RLS em objetos expostos.
+Quando um projeto Supabase exclusivo do Ultron
 for conectado, a sequência obrigatória será:
 
 1. criar uma branch de desenvolvimento do Supabase;
-2. aplicar o schema como migration nomeada;
-3. gerar os tipos TypeScript;
-4. testar login, isolamento entre organizações e policies negativas;
-5. executar advisors de segurança e performance;
-6. corrigir todos os alertas relevantes;
-7. somente então promover a migration para produção.
+2. criar a migration com a CLI oficial e incorporar os candidatos SQL;
+3. aplicar a migration no ambiente de desenvolvimento;
+4. gerar os tipos TypeScript;
+5. testar login, isolamento entre organizações e policies negativas;
+6. executar advisors de segurança e performance;
+7. corrigir todos os alertas relevantes;
+8. ensaiar backup/restauração;
+9. somente então promover a migration para produção.
+
+O projeto Supabase atualmente visível na conexão está inativo e não foi
+identificado como Ultron. Nenhum SQL será aplicado nele por suposição.
 
 Configuração manual posterior:
 
