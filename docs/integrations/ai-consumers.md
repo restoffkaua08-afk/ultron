@@ -32,7 +32,7 @@ upstream. Cada integração usa credencial própria e escopo mínimo.
 
 #### Transporte executável
 
-- endpoint estável: `POST /mcp` (Streamable HTTP);
+- endpoint canônico: `POST /mcp/` (Streamable HTTP, com barra final);
 - execução stateless e respostas JSON, apropriadas para escala horizontal;
 - descoberta publica exatamente as oito operações do contrato Python/REST/MCP;
 - catálogo MCP consulta o mesmo Registry aberto pela API, sem estado paralelo;
@@ -48,7 +48,7 @@ upstream. Cada integração usa credencial própria e escopo mínimo.
 Exemplo local para Claude Code:
 
 ```bash
-claude mcp add --transport http ultron http://localhost:8000/mcp
+claude mcp add --transport http ultron http://localhost:8000/mcp/
 ```
 
 O mesmo URL pode ser utilizado por qualquer cliente compatível com MCP
