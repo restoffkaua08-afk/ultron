@@ -1,18 +1,30 @@
--- U4 cloud blueprint. Converter em migration após conectar o projeto Supabase.
+-- U4/U6 cloud schema candidate. Converter em migration oficial somente com a
+-- CLI e aplicar em um projeto Supabase dedicado ao ULTRON.
 create table public.namespace_records (
   id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.organizations(id) on delete cascade,
   namespace text not null check (namespace ~ '^[a-z0-9][a-z0-9._-]{0,62}$'), record_key text not null check (record_key ~ '^[a-z0-9][a-z0-9._-]{0,62}$'),
-  owner_consumer_id uuid not null references public.ai_consumers(id) on delete cascade, value jsonb not null,
-  created_at timestamptz not null default now(), expires_at timestamptz, unique (organization_id, namespace, record_key)
+  owner_consumer_id uuid not null, value jsonb not null,
+  created_at timestamptz not null default now(), expires_at timestamptz,
+  unique (organization_id, namespace, record_key),
+  unique (organization_id, namespace, id),
+  foreign key (organization_id, owner_consumer_id)
+    references public.ai_consumers(organization_id, id) on delete cascade
 );
 create index namespace_records_owner_idx on public.namespace_records (owner_consumer_id);
 create index namespace_records_lookup_idx on public.namespace_records (organization_id, namespace, record_key);
 create index namespace_records_expiration_idx on public.namespace_records (organization_id, namespace, expires_at) where expires_at is not null;
 create table public.lineage_edges (
   id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.organizations(id) on delete cascade,
-  namespace text not null check (namespace ~ '^[a-z0-9][a-z0-9._-]{0,62}$'), source_record_id uuid not null references public.namespace_records(id) on delete cascade,
-  target_record_id uuid not null references public.namespace_records(id) on delete cascade, relation text not null check (relation ~ '^[a-z0-9][a-z0-9._-]{0,62}$'),
-  created_at timestamptz not null default now(), check (source_record_id <> target_record_id), unique (organization_id, namespace, source_record_id, target_record_id, relation)
+  namespace text not null check (namespace ~ '^[a-z0-9][a-z0-9._-]{0,62}$'),
+  source_record_id uuid not null, target_record_id uuid not null,
+  relation text not null check (relation ~ '^[a-z0-9][a-z0-9._-]{0,62}$'),
+  created_at timestamptz not null default now(),
+  check (source_record_id <> target_record_id),
+  unique (organization_id, namespace, source_record_id, target_record_id, relation),
+  foreign key (organization_id, namespace, source_record_id)
+    references public.namespace_records(organization_id, namespace, id) on delete cascade,
+  foreign key (organization_id, namespace, target_record_id)
+    references public.namespace_records(organization_id, namespace, id) on delete cascade
 );
 create index lineage_edges_source_idx on public.lineage_edges (source_record_id);
 create index lineage_edges_target_idx on public.lineage_edges (target_record_id);
